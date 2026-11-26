@@ -4,6 +4,7 @@ import { useNavigate } from "react-router";
 import { useAddAndOpen } from "@/hooks/use-add-and-open";
 import { torrentAdded } from "@/hooks/use-torrents";
 import { handleIncomingLinks, type IncomingLink } from "@/lib/incoming-links";
+import { useT } from "@/lib/i18n";
 import { peopleText } from "@/lib/people-text";
 import { type TorrentPageState, torrentPath } from "@/lib/routes";
 import { toast } from "@/lib/toast";
@@ -14,6 +15,7 @@ import { toast } from "@/lib/toast";
  * nothing. Lives in the layout, so it works whatever page is showing.
  */
 export function IncomingLinks() {
+  const t = useT();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { addAndOpen } = useAddAndOpen();
@@ -25,7 +27,7 @@ export function IncomingLinks() {
       void addAndOpen({ kind: "magnet", magnet: incoming.link }).then(
         (problem) => {
           if (problem) {
-            toast.error("Couldn't open the magnet link", {
+            toast.error(t("app.incoming.magnetFailed"), {
               description: problem,
             });
           }
@@ -36,11 +38,11 @@ export function IncomingLinks() {
 
     const { result } = incoming;
     if (result.status === "error") {
-      toast.error("Couldn't open the .torrent file", {
+      toast.error(t("app.incoming.fileFailed"), {
         // From the main process: a sentence, but never trusted blindly.
         description: peopleText(
           result.message,
-          "It may be damaged, or not a .torrent file.",
+          t("app.incoming.fileFailedFallback"),
         ),
       });
       return;

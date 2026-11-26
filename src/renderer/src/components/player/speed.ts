@@ -1,7 +1,9 @@
+import { t } from "@/lib/i18n";
+
 export const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 
 export function speedLabel(rate: number) {
-  return rate === 1 ? "Normal" : `${rate}×`;
+  return rate === 1 ? t("player.speed.normal") : `${rate}×`;
 }
 
 /** The next preset up or down from `rate` (for the < and > keys). */

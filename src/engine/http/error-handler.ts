@@ -1,6 +1,7 @@
 import type { ErrorRequestHandler, RequestHandler } from "express";
 import { z } from "zod";
 import type { ApiError } from "../../shared/engine-api";
+import { t } from "../../shared/i18n";
 import { AppError, ErrorCode } from "./errors";
 
 const statusByCode: Record<ErrorCode, number> = {
@@ -19,34 +20,44 @@ function toAppError(err: unknown): AppError {
   if (err instanceof AppError) return err;
 
   if (err instanceof z.ZodError) {
-    return new AppError(ErrorCode.ValidationFailed, "Some fields are invalid", {
-      issues: err.issues.map((issue) => ({
-        path: issue.path.join("."),
-        message: issue.message,
-      })),
-    });
+    return new AppError(
+      ErrorCode.ValidationFailed,
+      t("engine.errors.invalidFields"),
+      {
+        issues: err.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message,
+        })),
+      },
+    );
   }
 
   // Errors from Express's body parsers.
   if (err instanceof Error && "type" in err) {
     if (err.type === "entity.parse.failed") {
-      return new AppError(ErrorCode.BadRequest, "Invalid JSON body");
+      return new AppError(ErrorCode.BadRequest, t("engine.errors.invalidJson"));
     }
     if (err.type === "entity.too.large") {
       return new AppError(
         ErrorCode.PayloadTooLarge,
-        "The request body is too large",
+        t("engine.errors.bodyTooLarge"),
       );
     }
   }
 
-  return new AppError(ErrorCode.Internal, "Something went wrong");
+  return new AppError(
+    ErrorCode.Internal,
+    t("engine.errors.somethingWentWrong"),
+  );
 }
 
 export const notFoundHandler: RequestHandler = (req) => {
   throw new AppError(
     ErrorCode.NotFound,
-    `Route ${req.method} ${req.path} not found`,
+    t("engine.errors.routeNotFound", {
+      method: req.method,
+      path: req.path,
+    }),
   );
 };
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { t } from "../../../shared/i18n";
 import { appRoute } from "../../http/app-route";
 import { AppError, ErrorCode } from "../../http/errors";
 import { openFileToken } from "../../torrents/file-tokens";
@@ -19,7 +20,8 @@ const schema = z.object({
 export const handler = appRoute({ schema }, async ({ params }, req, res) => {
   const opened = openFileToken(params.token);
   // Same answer for "never existed" and "expired": nothing to learn here.
-  if (!opened) throw new AppError(ErrorCode.NotFound, "Not found");
+  if (!opened)
+    throw new AppError(ErrorCode.NotFound, t("engine.errors.notFound"));
 
   const { target, gate } = opened;
   torrentService.touch(target.infoHash);

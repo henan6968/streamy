@@ -1,6 +1,7 @@
 import { FileUp } from "lucide-react";
 import { useEffect, useEffectEvent, useState } from "react";
 import { useAddAndOpen } from "@/hooks/use-add-and-open";
+import { useT } from "@/lib/i18n";
 import { isTorrentFile } from "@/lib/magnet";
 import { toast } from "@/lib/toast";
 
@@ -9,11 +10,27 @@ function hasFiles(event: DragEvent): boolean {
 }
 
 /**
+ * The message with its {name} in <bdi>, so a right-to-left file name stays
+ * whole in the sentence.
+ */
+function withName(message: string, name: string) {
+  const [before = "", after = ""] = message.split("{name}");
+  return (
+    <>
+      {before}
+      <bdi>{name}</bdi>
+      {after}
+    </>
+  );
+}
+
+/**
  * Drop a .torrent anywhere on the window to open it. Shows an overlay while
  * a file is dragged over. Without this, Electron would try to open the file
  * itself (the main process blocks that, but the page must still say no).
  */
 export function DropZone() {
+  const t = useT();
   const { addAndOpen } = useAddAndOpen();
   const [dragging, setDragging] = useState(false);
 
@@ -21,24 +38,19 @@ export function DropZone() {
     const file = files.find(isTorrentFile);
     if (!file) {
       const name = files[0]?.name;
-      // Names in <bdi>: a right-to-left one stays whole in the sentence.
       toast.error(
-        name ? (
-          <>
-            "<bdi>{name}</bdi>" isn't a .torrent file
-          </>
-        ) : (
-          "That isn't a .torrent file"
-        ),
-        { description: "Streamy opens .torrent files and magnet links." },
+        name
+          ? withName(t("app.drop.notTorrent"), name)
+          : t("app.drop.notTorrentUnknown"),
+        { description: t("app.drop.notTorrentDescription") },
       );
       return;
     }
-    const name = <bdi>{file.name}</bdi>;
-    const id = toast.loading(<>Opening {name}…</>);
+    const name = file.name;
+    const id = toast.loading(withName(t("app.drop.opening"), name));
     void addAndOpen({ kind: "file", file }).then((problem) => {
       if (problem) {
-        toast.error(<>Couldn't open {name}</>, {
+        toast.error(withName(t("app.drop.openFailed"), name), {
           id,
           description: problem,
         });
@@ -101,9 +113,9 @@ export function DropZone() {
         <span className="flex size-12 items-center justify-center rounded-full bg-accent">
           <FileUp className="size-6" aria-hidden />
         </span>
-        <p className="font-medium">Drop the .torrent to open it</p>
+        <p className="font-medium">{t("app.drop.hint")}</p>
         <p className="text-sm text-muted-foreground">
-          It starts playing while it downloads.
+          {t("app.drop.hintBody")}
         </p>
       </div>
     </div>

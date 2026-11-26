@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { setLocale } from "../../../shared/i18n";
 import {
   baseLanguage,
   defaultLocale,
@@ -6,6 +7,11 @@ import {
   languageOptions,
   sameLanguage,
 } from "@/lib/languages";
+
+// Tests that switch the interface's language put it back.
+afterEach(() => {
+  setLocale("en");
+});
 
 describe("languageName", () => {
   it("names languages in the viewer's language", () => {
@@ -34,13 +40,21 @@ describe("languageName", () => {
   });
 
   // "Englisch (forced)" in an English menu mixes two languages.
-  it("names them in English, like the rest of the interface", () => {
+  it("names them in the interface's language, like the rest of the text", () => {
     vi.spyOn(navigator, "language", "get").mockReturnValue("de-DE");
 
     expect(languageName("en")).toBe("English");
     expect(languageOptions().map((option) => option.name)).toContain("German");
     // The viewer's language still says which tracks they probably want.
     expect(defaultLocale()).toBe("de-DE");
+  });
+
+  it("names them in Chinese for the Chinese interface", () => {
+    setLocale("zh-CN");
+
+    expect(languageName("en")).toBe("英语");
+    expect(languageName(null)).toBe("未知");
+    expect(languageOptions().map((option) => option.name)).toContain("日语");
   });
 });
 

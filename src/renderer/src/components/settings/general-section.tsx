@@ -1,14 +1,20 @@
 import { useEffect, useState } from "react";
-import type { SystemIntegration } from "../../../../shared/settings";
+import {
+  type Language,
+  type SettingsSnapshot,
+  type SystemIntegration,
+} from "../../../../shared/settings";
 import { SettingRow } from "@/components/settings/setting-row";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Switch } from "@/components/ui/switch";
+import { useT } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
-import { runAction, systemApi } from "@/lib/settings";
+import { runAction, settingsApi, systemApi } from "@/lib/settings";
 
-const ONLY_INSTALLED = "Only works in the installed app.";
-
-/** How Streamy fits into the computer: opening at login, magnet links. */
-export function GeneralSection() {
+/** How Streamy fits into the computer: its language, login, magnet links. */
+export function GeneralSection({ snapshot }: { snapshot: SettingsSnapshot }) {
+  const t = useT();
+  const { language } = snapshot.settings;
   const [system, setSystem] = useState<SystemIntegration | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,62 +41,88 @@ export function GeneralSection() {
     }).then(setError);
   };
 
-  if (!system) return null;
-
-  // Linux can make Streamy the magnet handler but can't undo it.
-  const magnetLocked = platform === "linux" && system.handlesMagnetLinks;
-  // The Linux AppImage can't become the magnet app at all (only the .deb can).
-  const magnetUnsupported = system.available && !system.canHandleMagnetLinks;
+  // Each language is named in itself, so it reads right in any of them.
+  const languageOptions: { value: Language; label: string }[] = [
+    { value: "system", label: t("general.language.system") },
+    { value: "en", label: "English" },
+    { value: "zh-CN", label: "简体中文" },
+  ];
 
   return (
     <>
       <SettingRow
-        title="Open at login"
-        description={
-          !system.available
-            ? `Start Streamy when you sign in to your computer. ${ONLY_INSTALLED}`
-            : system.openAtLoginNeedsApproval
-              ? "Almost there: allow Streamy in System Settings → General → Login Items."
-              : "Start Streamy when you sign in to your computer."
-        }
+        title={t("general.language.title")}
+        description={t("general.language.description")}
       >
-        {({ titleId, descriptionId }) => (
-          <Switch
-            aria-labelledby={titleId}
-            aria-describedby={descriptionId}
-            checked={system.openAtLogin}
-            disabled={!system.available}
-            onCheckedChange={(enabled) => {
-              change(() => systemApi.setOpenAtLogin(enabled));
-            }}
-          />
-        )}
+        <SegmentedControl
+          label={t("general.language.title")}
+          size="sm"
+          options={languageOptions}
+          value={language}
+          onChange={(next) => {
+            setError(null);
+            void runAction(async () => {
+              await settingsApi.update({ language: next });
+            }).then(setError);
+          }}
+        />
       </SettingRow>
 
-      <SettingRow
-        title="Open magnet links with Streamy"
-        description={
-          !system.available
-            ? `Clicking a magnet link in your browser opens it here. ${ONLY_INSTALLED}`
-            : magnetUnsupported
-              ? "The AppImage can't open magnet links. Install the .deb version for this."
-              : magnetLocked
-                ? "To stop, choose another app for magnet links in your system settings."
-                : "Clicking a magnet link in your browser opens it here."
-        }
-      >
-        {({ titleId, descriptionId }) => (
-          <Switch
-            aria-labelledby={titleId}
-            aria-describedby={descriptionId}
-            checked={system.handlesMagnetLinks}
-            disabled={!system.available || magnetUnsupported || magnetLocked}
-            onCheckedChange={(enabled) => {
-              change(() => systemApi.setHandlesMagnetLinks(enabled));
-            }}
-          />
-        )}
-      </SettingRow>
+      {system && (
+        <>
+          <SettingRow
+            title={t("general.openAtLogin.title")}
+            description={
+              !system.available
+                ? t("general.openAtLogin.descriptionUnavailable")
+                : system.openAtLoginNeedsApproval
+                  ? t("general.openAtLogin.descriptionNeedsApproval")
+                  : t("general.openAtLogin.description")
+            }
+          >
+            {({ titleId, descriptionId }) => (
+              <Switch
+                aria-labelledby={titleId}
+                aria-describedby={descriptionId}
+                checked={system.openAtLogin}
+                disabled={!system.available}
+                onCheckedChange={(enabled) => {
+                  change(() => systemApi.setOpenAtLogin(enabled));
+                }}
+              />
+            )}
+          </SettingRow>
+
+          <SettingRow
+            title={t("general.magnetLinks.title")}
+            description={
+              !system.available
+                ? t("general.magnetLinks.descriptionUnavailable")
+                : magnetUnsupported(system)
+                  ? t("general.magnetLinks.descriptionUnsupported")
+                  : magnetLocked(system)
+                    ? t("general.magnetLinks.descriptionLocked")
+                    : t("general.magnetLinks.description")
+            }
+          >
+            {({ titleId, descriptionId }) => (
+              <Switch
+                aria-labelledby={titleId}
+                aria-describedby={descriptionId}
+                checked={system.handlesMagnetLinks}
+                disabled={
+                  !system.available ||
+                  magnetUnsupported(system) ||
+                  magnetLocked(system)
+                }
+                onCheckedChange={(enabled) => {
+                  change(() => systemApi.setHandlesMagnetLinks(enabled));
+                }}
+              />
+            )}
+          </SettingRow>
+        </>
+      )}
 
       {error && (
         <p role="alert" className="pt-2 text-sm text-danger">
@@ -99,4 +131,14 @@ export function GeneralSection() {
       )}
     </>
   );
+}
+
+// Linux can make Streamy the magnet handler but can't undo it.
+function magnetLocked(system: SystemIntegration): boolean {
+  return platform === "linux" && system.handlesMagnetLinks;
+}
+
+// The Linux AppImage can't become the magnet app at all (only the .deb can).
+function magnetUnsupported(system: SystemIntegration): boolean {
+  return system.available && !system.canHandleMagnetLinks;
 }

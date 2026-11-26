@@ -7,6 +7,7 @@ import {
 import { Readable } from "node:stream";
 import { type ApiError, ErrorCode } from "../../shared/engine-api";
 import { ENGINE_SECRET_HEADER } from "../../shared/engine-protocol";
+import { t } from "../../shared/i18n";
 import type { EngineConnection } from "./host";
 
 // app://streamy/api/* → the engine's loopback HTTP server (PLAN §3.3, §5.2).
@@ -53,11 +54,9 @@ export const FORWARDED_RESPONSE_HEADERS = [
   "x-request-id",
 ] as const;
 
-const NOT_RUNNING = "The playback engine isn't running. Try again in a moment.";
-const UNREACHABLE =
-  "Streamy couldn't reach the playback engine. Try again in a moment.";
-const TOO_SLOW =
-  "The playback engine took too long to answer. Try again in a moment.";
+const notRunning = () => t("main.engine.notRunning");
+const unreachable = () => t("main.engine.unreachable");
+const tooSlow = () => t("main.engine.tooSlowToAnswer");
 
 /** On every answer: the page must never guess a type the engine didn't send. */
 const SECURITY_HEADERS = { "x-content-type-options": "nosniff" } as const;
@@ -151,7 +150,7 @@ export function createApiProxy({
       return errorResponse(
         503,
         ErrorCode.ServiceUnavailable,
-        NOT_RUNNING,
+        notRunning(),
         always,
       );
     }
@@ -166,7 +165,12 @@ export function createApiProxy({
       });
     } catch {
       // http.request refuses some URLs outright (e.g. characters it won't send).
-      return errorResponse(400, ErrorCode.BadRequest, "Bad request.", always);
+      return errorResponse(
+        400,
+        ErrorCode.BadRequest,
+        t("main.engine.badRequest"),
+        always,
+      );
     } finally {
       if (command) {
         pending--;
@@ -253,13 +257,13 @@ function forward(
     // After one, errors reach the page through the body stream instead.
     upstream.on("error", () => {
       answer(
-        errorResponse(502, ErrorCode.ServiceUnavailable, UNREACHABLE, always),
+        errorResponse(502, ErrorCode.ServiceUnavailable, unreachable(), always),
       );
     });
     if (timeoutMs !== null) {
       timer = setTimeout(() => {
         answer(
-          errorResponse(504, ErrorCode.ServiceUnavailable, TOO_SLOW, always),
+          errorResponse(504, ErrorCode.ServiceUnavailable, tooSlow(), always),
         );
         upstream.destroy();
       }, timeoutMs);
@@ -297,7 +301,7 @@ function toResponse(
     return errorResponse(
       502,
       ErrorCode.ServiceUnavailable,
-      UNREACHABLE,
+      unreachable(),
       always,
     );
   }

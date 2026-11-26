@@ -1,3 +1,5 @@
+import { t } from "../../shared/i18n";
+
 /*
  * What people read when a torrent fails (TorrentSummary.error). WebTorrent
  * fails a torrent with whatever went wrong underneath, e.g. "ENOSPC: no
@@ -5,6 +7,9 @@
  * with a file name in it. The UI gets a plain sentence instead; the error
  * itself goes to the log (where the logger leaves the file names out).
  */
+
+// The English text (tests import these); describeTorrentError() answers in
+// the language set with setLocale().
 
 export const DISK_FULL = "Your disk is full.";
 export const CANT_WRITE = "Streamy can't write to the video folder.";
@@ -28,14 +33,14 @@ export function describeTorrentError(err: unknown): string {
   switch (systemCode(err)) {
     case "ENOSPC":
     case "EDQUOT":
-      return DISK_FULL;
+      return t("engine.errors.diskFull");
     case "EACCES":
     case "EPERM":
     case "EROFS":
-      return CANT_WRITE;
+      return t("engine.errors.videoFolderCantWrite");
     case "EBUSY":
-      return FILE_BUSY;
+      return t("engine.errors.fileBusy");
     default:
-      return SOMETHING_WRONG;
+      return t("engine.errors.torrentSomethingWrong");
   }
 }

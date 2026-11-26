@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useEffect, useEffectEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { useHistoryNav } from "@/hooks/use-history-nav";
+import { useT } from "@/lib/i18n";
 import { isMac } from "@/lib/platform";
 
 const BACK_SHORTCUT = isMac ? "⌘[" : "Alt+←";
@@ -34,6 +35,7 @@ function shortcutDirection(event: KeyboardEvent): "back" | "forward" | null {
  * there's nowhere to go, so they never jump around.
  */
 export function NavButtons() {
+  const t = useT();
   const { canGoBack, canGoForward, goBack, goForward } = useHistoryNav();
 
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
@@ -60,9 +62,9 @@ export function NavButtons() {
       <Button
         variant="ghost"
         size="icon-sm"
-        aria-label="Back"
+        aria-label={t("common.back")}
         aria-keyshortcuts={isMac ? "Meta+BracketLeft" : "Alt+ArrowLeft"}
-        title={`Back (${BACK_SHORTCUT})`}
+        title={t("app.nav.backShortcut", { shortcut: BACK_SHORTCUT })}
         className="no-drag-region"
         disabled={!canGoBack}
         onClick={goBack}
@@ -72,9 +74,9 @@ export function NavButtons() {
       <Button
         variant="ghost"
         size="icon-sm"
-        aria-label="Forward"
+        aria-label={t("common.forward")}
         aria-keyshortcuts={isMac ? "Meta+BracketRight" : "Alt+ArrowRight"}
-        title={`Forward (${FORWARD_SHORTCUT})`}
+        title={t("app.nav.forwardShortcut", { shortcut: FORWARD_SHORTCUT })}
         className="no-drag-region"
         disabled={!canGoForward}
         onClick={goForward}

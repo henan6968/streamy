@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { Card } from "@/components/ui/card";
 import { formatBytes, formatPercent, formatTime } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { naturalSortBy } from "@/lib/natural-sort";
 import { resumePosition } from "@/lib/resume";
 import { type WatchPageState, watchPath } from "@/lib/routes";
@@ -33,6 +34,7 @@ export function FileList({
   /** Saved positions (from the library), for "Resume at 34:12". */
   progress?: FileProgress[];
 }) {
+  const t = useT();
   const sorted = naturalSortBy(files, (file) => file.path);
   const videos = sorted.filter((file) => file.kind === "video");
   const subtitles = sorted.filter((file) => file.kind === "subtitle");
@@ -42,9 +44,7 @@ export function FileList({
 
   if (files.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        This torrent has no files.
-      </p>
+      <p className="text-sm text-muted-foreground">{t("app.files.empty")}</p>
     );
   }
 
@@ -52,11 +52,11 @@ export function FileList({
     <div className="flex flex-col gap-8">
       {videos.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          There's no video in this torrent, so there's nothing to play.
+          {t("app.files.noVideo")}
         </p>
       )}
       <FileGroup
-        title="Videos"
+        title={t("app.files.videos")}
         icon={Film}
         files={videos}
         torrentName={torrentName}
@@ -70,13 +70,13 @@ export function FileList({
         )}
       </FileGroup>
       <FileGroup
-        title="Subtitles"
+        title={t("app.files.subtitles")}
         icon={Captions}
         files={subtitles}
         torrentName={torrentName}
       />
       <FileGroup
-        title="Other files"
+        title={t("app.files.other")}
         icon={File}
         files={other}
         torrentName={torrentName}
@@ -95,13 +95,14 @@ function PlayButton({
   file: TorrentFile;
   progress: FileProgress | undefined;
 }) {
+  const t = useT();
   const resumeAt = resumePosition(progress);
   return (
     <div className="flex shrink-0 items-center gap-2">
       {progress?.watched && (
         <Badge tone="success">
           <Check className="size-3" aria-hidden />
-          Watched
+          {t("app.files.watched")}
         </Badge>
       )}
       <Link
@@ -114,8 +115,11 @@ function PlayButton({
         }
         aria-label={
           resumeAt === null
-            ? `Play ${file.name}`
-            : `Resume ${file.name} at ${formatTime(resumeAt)}`
+            ? t("app.files.play", { name: file.name })
+            : t("app.files.resume", {
+                name: file.name,
+                time: formatTime(resumeAt),
+              })
         }
         className={buttonVariants({
           size: "sm",
@@ -124,7 +128,9 @@ function PlayButton({
         })}
       >
         <Play className="fill-current" aria-hidden />
-        {resumeAt === null ? "Play" : `Resume at ${formatTime(resumeAt)}`}
+        {resumeAt === null
+          ? t("common.play")
+          : t("app.files.resumeAt", { time: formatTime(resumeAt) })}
       </Link>
     </div>
   );
@@ -154,6 +160,7 @@ function FileGroup({
   /** Extra content at the end of each row (the Play button). */
   children?: (file: TorrentFile) => ReactNode;
 }) {
+  const t = useT();
   if (files.length === 0) return null;
 
   return (
@@ -184,11 +191,16 @@ function FileGroup({
                 </span>
                 <span className="flex min-w-0 gap-2 text-xs text-muted-foreground tabular-nums">
                   <span className="shrink-0">
-                    {formatBytes(file.size)}
-                    {file.progress > 0 && file.progress < 1 && (
-                      <> · {formatPercent(file.progress)} downloaded</>
-                    )}
-                    {file.progress >= 1 && <> · Downloaded</>}
+                    {file.progress > 0 && file.progress < 1
+                      ? t("app.files.sizeProgress", {
+                          size: formatBytes(file.size),
+                          percent: formatPercent(file.progress),
+                        })
+                      : file.progress >= 1
+                        ? t("app.files.sizeDownloaded", {
+                            size: formatBytes(file.size),
+                          })
+                        : formatBytes(file.size)}
                   </span>
                   {folder && (
                     <span

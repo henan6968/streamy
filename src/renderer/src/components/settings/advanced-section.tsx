@@ -2,6 +2,7 @@ import { FolderOpen, RotateCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { EngineStatus } from "../../../../shared/api";
 import { ENGINE_API_BASE, type Health } from "../../../../shared/engine-api";
+import type { MessageKey } from "../../../../shared/i18n";
 import type {
   HardwareEncoding,
   SettingsSnapshot,
@@ -12,6 +13,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/cn";
+import { useT } from "@/lib/i18n";
 import { peopleText } from "@/lib/people-text";
 import { runAction, settingsApi } from "@/lib/settings";
 
@@ -34,9 +36,9 @@ const ENCODER_NAMES: Record<string, string> = {
   libx264: "CPU (x264)",
 };
 
-const ENCODING_OPTIONS: { value: HardwareEncoding; label: string }[] = [
-  { value: "auto", label: "Automatic" },
-  { value: "off", label: "Off" },
+const ENCODING_OPTIONS: { value: HardwareEncoding; labelKey: MessageKey }[] = [
+  { value: "auto", labelKey: "common.automatic" },
+  { value: "off", labelKey: "common.off" },
 ];
 
 /** "8.1.3-Jellyfin" → "8.1.3". Unusual versions are shown as they are. */
@@ -121,35 +123,40 @@ function EngineSummary({
   status: EngineStatus | null;
   health: Health | null;
 }) {
+  const t = useT();
   let summary: string;
   let problem: string | null = null;
   switch (status?.state) {
     case undefined:
-      summary = "Checking…";
+      summary = t("settings.advanced.engine.checking");
       break;
     case "starting":
-      summary = "Starting…";
+      summary = t("settings.advanced.engine.starting");
       break;
     case "restarting":
-      summary = "Reconnecting…";
-      problem =
-        status.error && peopleText(status.error, "It stopped unexpectedly.");
-      break;
-    case "failed":
-      summary = "Not running. Streamy tries again in a minute.";
+      summary = t("settings.advanced.engine.reconnecting");
       problem =
         status.error &&
-        peopleText(status.error, "It keeps stopping. The logs say why.");
+        peopleText(
+          status.error,
+          t("settings.advanced.engine.stoppedUnexpectedly"),
+        );
+      break;
+    case "failed":
+      summary = t("settings.advanced.engine.notRunning");
+      problem =
+        status.error &&
+        peopleText(status.error, t("settings.advanced.engine.keepsStopping"));
       break;
     case "running": {
-      const parts = ["Running"];
+      const parts = [t("settings.advanced.engine.running")];
       if (health?.ffmpeg.version) {
         parts.push(`ffmpeg ${shortVersion(health.ffmpeg.version)}`);
       } else if (health?.ffmpeg.error) {
-        parts.push("ffmpeg isn't working");
+        parts.push(t("settings.advanced.engine.ffmpegNotWorking"));
         problem = peopleText(
           health.ffmpeg.error,
-          "Videos that need converting won't play. The logs say why.",
+          t("settings.advanced.engine.conversionFailed"),
         );
       }
       if (health?.encoder) {
@@ -177,6 +184,7 @@ function EngineSummary({
 }
 
 export function AdvancedSection({ snapshot }: { snapshot: SettingsSnapshot }) {
+  const t = useT();
   const { hardwareAcceleration, hardwareEncoding } = snapshot.settings;
   const needsRestart =
     hardwareAcceleration !== snapshot.hardwareAccelerationActive;
@@ -186,6 +194,11 @@ export function AdvancedSection({ snapshot }: { snapshot: SettingsSnapshot }) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
+
+  const encodingOptions = ENCODING_OPTIONS.map(({ value, labelKey }) => ({
+    value,
+    label: t(labelKey),
+  }));
 
   const reset = () => {
     setResetting(true);
@@ -200,14 +213,13 @@ export function AdvancedSection({ snapshot }: { snapshot: SettingsSnapshot }) {
   return (
     <>
       <SettingRow
-        title="Hardware acceleration"
+        title={t("settings.advanced.hardwareAcceleration.title")}
         description={
           <>
-            Uses your graphics card to draw Streamy and play video. Turn it off
-            if the window or video flickers or shows glitches.
+            {t("settings.advanced.hardwareAcceleration.description")}
             {needsRestart && (
               <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-foreground">
-                Restart Streamy to apply this change.
+                {t("settings.advanced.hardwareAcceleration.restart")}
                 {/* In `npm run dev`, restarting would lose the dev server. */}
                 {!import.meta.env.DEV && (
                   <Button
@@ -220,7 +232,7 @@ export function AdvancedSection({ snapshot }: { snapshot: SettingsSnapshot }) {
                     }}
                   >
                     <RotateCw />
-                    Restart now
+                    {t("settings.advanced.hardwareAcceleration.restartNow")}
                   </Button>
                 )}
               </span>
@@ -243,13 +255,13 @@ export function AdvancedSection({ snapshot }: { snapshot: SettingsSnapshot }) {
       </SettingRow>
 
       <SettingRow
-        title="Hardware video encoding"
-        description="When a video has to be converted to play, your graphics card does it faster. Turn it off if converted videos look glitchy."
+        title={t("settings.advanced.hardwareEncoding.title")}
+        description={t("settings.advanced.hardwareEncoding.description")}
       >
         <SegmentedControl
-          label="Hardware video encoding"
+          label={t("settings.advanced.hardwareEncoding.title")}
           size="sm"
-          options={ENCODING_OPTIONS}
+          options={encodingOptions}
           value={hardwareEncoding}
           onChange={(next) => {
             void runAction(() =>
@@ -260,32 +272,32 @@ export function AdvancedSection({ snapshot }: { snapshot: SettingsSnapshot }) {
       </SettingRow>
 
       <SettingRow
-        title="Playback engine"
+        title={t("settings.advanced.engine.title")}
         description={<EngineSummary {...engine} />}
       >
         {null}
       </SettingRow>
 
       <SettingRow
-        title="Logs"
-        description="What Streamy and its playback engine did. Useful when reporting a problem."
+        title={t("settings.advanced.logs.title")}
+        description={t("settings.advanced.logs.description")}
       >
         <Button
           size="sm"
           variant="outline"
-          aria-label="Open logs folder"
+          aria-label={t("settings.advanced.logs.open")}
           onClick={() => {
             void runAction(() => window.streamy.openLogs()).then(setError);
           }}
         >
           <FolderOpen />
-          Open
+          {t("common.open")}
         </Button>
       </SettingRow>
 
       <SettingRow
-        title="Data folder"
-        description="Where Streamy keeps your settings."
+        title={t("settings.advanced.dataFolder.title")}
+        description={t("settings.advanced.dataFolder.description")}
       >
         <Button
           size="sm"
@@ -295,13 +307,13 @@ export function AdvancedSection({ snapshot }: { snapshot: SettingsSnapshot }) {
           }}
         >
           <FolderOpen />
-          Open
+          {t("common.open")}
         </Button>
       </SettingRow>
 
       <SettingRow
-        title="Reset all settings"
-        description="Puts every setting back to how it was when you installed Streamy. Your videos aren't deleted."
+        title={t("settings.advanced.reset.title")}
+        description={t("settings.advanced.reset.description")}
       >
         <Button
           size="sm"
@@ -311,7 +323,7 @@ export function AdvancedSection({ snapshot }: { snapshot: SettingsSnapshot }) {
             setConfirmReset(true);
           }}
         >
-          Reset…
+          {t("settings.advanced.reset.button")}
         </Button>
       </SettingRow>
 
@@ -323,9 +335,9 @@ export function AdvancedSection({ snapshot }: { snapshot: SettingsSnapshot }) {
 
       <ConfirmDialog
         open={confirmReset}
-        title="Reset all settings?"
-        description="Every setting goes back to its default. Your videos aren't deleted."
-        confirmLabel="Reset"
+        title={t("settings.advanced.resetConfirm.title")}
+        description={t("settings.advanced.resetConfirm.description")}
+        confirmLabel={t("settings.advanced.resetConfirm.confirm")}
         busy={resetting}
         error={resetError}
         onConfirm={reset}

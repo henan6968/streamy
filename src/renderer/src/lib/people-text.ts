@@ -4,7 +4,12 @@
 // line) can still slip through. Such text helps nobody on screen: it's in
 // the logs already, so show a plain sentence instead.
 
-/** What's shown when the real text is for developers. */
+import { t } from "../../../shared/i18n";
+
+/**
+ * The fallback's English text; tests compare against it. What peopleText()
+ * shows comes from the dictionary, so it follows the language on screen.
+ */
 export const SOMETHING_WENT_WRONG = "Something went wrong. Please try again.";
 
 const TECHNICAL: RegExp[] = [
@@ -49,7 +54,7 @@ export function looksTechnical(text: string): boolean {
  */
 export function peopleText(
   text: string | null | undefined,
-  fallback: string = SOMETHING_WENT_WRONG,
+  fallback: string = t("common.somethingWentWrong"),
 ): string {
   if (text == null || looksTechnical(text)) {
     if (text != null) logOnce(text);

@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
+import { t } from "../../../../shared/i18n";
 import { isGone } from "../../../cache";
 import { appRoute } from "../../../http/app-route";
 import { AppError, ErrorCode } from "../../../http/errors";
@@ -22,7 +23,8 @@ export const handler = appRoute({ schema }, async ({ params }, _req, res) => {
   try {
     image = await readFile(path);
   } catch (err) {
-    if (isGone(err)) throw new AppError(ErrorCode.NotFound, "No thumbnail yet");
+    if (isGone(err))
+      throw new AppError(ErrorCode.NotFound, t("engine.errors.noThumbnail"));
     throw err;
   }
   res.set("Cache-Control", "no-cache").type("image/jpeg").send(image);

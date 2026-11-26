@@ -8,6 +8,7 @@ import {
   RouterProvider,
 } from "react-router";
 import { Toaster } from "@/components/ui/toaster";
+import { LocaleProvider } from "@/lib/locale-provider";
 import { createQueryClient } from "@/lib/query-client";
 import { routes } from "@/router";
 
@@ -50,10 +51,12 @@ export function renderWithProviders(
   );
 
   const result = render(
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-      <Toaster />
-    </QueryClientProvider>,
+    <LocaleProvider>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+        <Toaster />
+      </QueryClientProvider>
+    </LocaleProvider>,
   );
 
   return { ...result, router, queryClient, user: userEvent.setup() };
@@ -68,10 +71,12 @@ export function renderApp({
   const router = createMemoryRouter(routes, { initialEntries: [route] });
 
   const result = render(
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-      <Toaster />
-    </QueryClientProvider>,
+    <LocaleProvider>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+        <Toaster />
+      </QueryClientProvider>
+    </LocaleProvider>,
   );
 
   return { ...result, router, queryClient, user: userEvent.setup() };

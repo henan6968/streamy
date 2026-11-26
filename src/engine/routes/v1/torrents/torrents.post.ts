@@ -1,18 +1,23 @@
 import { z } from "zod";
+import { t } from "../../../../shared/i18n";
 import { MAX_MAGNET_LENGTH } from "../../../config";
 import { appRoute } from "../../../http/app-route";
 import { parseMagnetInput } from "../../../lib/magnet";
 import { openTorrent } from "./open";
 
-const PASTE_A_MAGNET = "Paste a magnet link or an info hash";
+// The messages are functions: they're only read when a request fails, so
+// they're in the language set by then.
 
 const schema = z.object({
   body: z.object(
     {
       magnet: z
-        .string({ error: PASTE_A_MAGNET })
+        .string({ error: () => t("engine.errors.pasteMagnetOrHash") })
         .max(MAX_MAGNET_LENGTH, {
-          error: `This magnet link is too long (the limit is ${MAX_MAGNET_LENGTH.toLocaleString("en-US")} characters)`,
+          error: () =>
+            t("engine.errors.magnetTooLong", {
+              max: MAX_MAGNET_LENGTH.toLocaleString("en-US"),
+            }),
         })
         .superRefine((value, ctx) => {
           const result = parseMagnetInput(value);
@@ -20,7 +25,7 @@ const schema = z.object({
             ctx.addIssue({ code: "custom", message: result.error });
         }),
     },
-    { error: PASTE_A_MAGNET },
+    { error: () => t("engine.errors.pasteMagnetOrHash") },
   ),
 });
 

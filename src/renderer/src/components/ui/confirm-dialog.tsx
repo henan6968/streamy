@@ -1,6 +1,7 @@
 import { type ReactNode, useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTitle } from "@/components/ui/dialog";
+import { useT } from "@/lib/i18n";
 
 /**
  * "Are you sure?" for an action that can't be undone. When the action fails,
@@ -32,6 +33,7 @@ export function ConfirmDialog({
   onClose: () => void;
 }) {
   const titleId = useId();
+  const t = useT();
 
   return (
     <Dialog
@@ -55,7 +57,7 @@ export function ConfirmDialog({
 
         <div className="flex justify-end gap-2">
           <Button variant="outline" disabled={busy} onClick={onClose}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button variant="danger" loading={busy} onClick={onConfirm}>
             {confirmLabel}

@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from "electron";
 import { IpcChannel } from "../../shared/api";
 import type { LogLevel } from "../../shared/engine-protocol";
+import { resolveLocale } from "../../shared/i18n";
 import { handleTrusted } from "../ipc";
 import type { Logger } from "../logs";
 import { logsDir } from "../paths";
@@ -75,7 +76,13 @@ export function setupEngine({
     );
   }
 
-  const config = engineConfigSource({ store, defaultCacheDir, log });
+  const config = engineConfigSource({
+    store,
+    defaultCacheDir,
+    log,
+    // The engine's messages in the language picked in Settings.
+    locale: () => resolveLocale(store.get().language, app.getLocale()),
+  });
   const host = new EngineHost({
     entryPath,
     log,

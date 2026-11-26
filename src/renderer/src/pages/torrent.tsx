@@ -38,6 +38,7 @@ import {
   formatPercent,
   formatSpeed,
 } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { isInfoHash } from "@/lib/magnet";
 import { peopleText } from "@/lib/people-text";
 import { type TorrentPageState, watchPath } from "@/lib/routes";
@@ -45,7 +46,23 @@ import { type TorrentPageState, watchPath } from "@/lib/routes";
 /** After this long without metadata, it's probably a dead torrent. */
 const NO_PEERS_HINT_SECONDS = 30;
 
+/**
+ * The message with its {name} in <bdi>, so a right-to-left name stays whole
+ * in the sentence.
+ */
+function withName(message: string, name: string) {
+  const [before = "", after = ""] = message.split("{name}");
+  return (
+    <>
+      {before}
+      <bdi>{name}</bdi>
+      {after}
+    </>
+  );
+}
+
 export function TorrentPage() {
+  const t = useT();
   const { infoHash: raw = "" } = useParams();
   const infoHash = raw.toLowerCase();
 
@@ -53,7 +70,7 @@ export function TorrentPage() {
     return (
       <Message
         icon={FileX}
-        title="This link doesn't point to a torrent"
+        title={t("app.torrent.badLink")}
         actions={<HomeLink />}
       />
     );
@@ -63,6 +80,7 @@ export function TorrentPage() {
 }
 
 function TorrentView({ infoHash }: { infoHash: string }) {
+  const t = useT();
   const query = useTorrent(infoHash);
   const library = useLibraryTorrent(infoHash);
   const navigate = useNavigate();
@@ -90,15 +108,11 @@ function TorrentView({ infoHash }: { infoHash: string }) {
       <Message
         busy
         title={
-          query.fetchStatus === "paused" ? (
-            "Waiting for the playback engine…"
-          ) : name ? (
-            <>
-              Opening <bdi>{name}</bdi>…
-            </>
-          ) : (
-            "Opening the torrent…"
-          )
+          query.fetchStatus === "paused"
+            ? t("app.engine.waiting")
+            : name
+              ? withName(t("app.torrent.openingNamed"), name)
+              : t("app.torrent.opening")
         }
       />
     );
@@ -133,7 +147,7 @@ function TorrentView({ infoHash }: { infoHash: string }) {
               dir={name ? "auto" : undefined}
               className="text-start text-xl font-semibold tracking-tight [overflow-wrap:anywhere] sm:text-2xl"
             >
-              {name ?? "Finding the file list…"}
+              {name ?? t("app.torrent.findingFiles")}
             </h1>
             <div className="flex min-w-0 items-center gap-2">
               <StatusBadge {...torrent} />
@@ -144,14 +158,14 @@ function TorrentView({ infoHash }: { infoHash: string }) {
           </div>
           <Button variant="outline" size="sm" onClick={openRemove}>
             <Trash2 aria-hidden />
-            Remove…
+            {t("app.torrent.remove")}
           </Button>
         </div>
         <Stats torrent={torrent} />
       </div>
 
       {query.isError && !isApiError(query.error, 404) && (
-        <Alert tone="warning" title="Couldn't refresh this torrent">
+        <Alert tone="warning" title={t("app.torrent.refreshFailed")}>
           <div className="flex flex-col items-start gap-2">
             {errorMessage(query.error)}
             <Button
@@ -160,7 +174,7 @@ function TorrentView({ infoHash }: { infoHash: string }) {
               loading={query.isFetching}
               onClick={() => void query.refetch()}
             >
-              Try again
+              {t("common.tryAgain")}
             </Button>
           </div>
         </Alert>
@@ -173,11 +187,11 @@ function TorrentView({ infoHash }: { infoHash: string }) {
       {torrent.status === "checking" && <CheckingData />}
 
       {torrent.status === "error" && (
-        <Alert tone="danger" title="This torrent stopped working">
+        <Alert tone="danger" title={t("app.torrent.stopped")}>
           <div className="flex flex-col items-start gap-2">
-            {peopleText(torrent.error, "Something went wrong with it.")}
+            {peopleText(torrent.error, t("app.torrent.stoppedFallback"))}
             <Button variant="outline" size="sm" onClick={openRemove}>
-              Remove it
+              {t("app.torrent.removeIt")}
             </Button>
           </div>
         </Alert>
@@ -204,21 +218,25 @@ function TorrentView({ infoHash }: { infoHash: string }) {
 }
 
 function Stats({ torrent }: { torrent: TorrentDetail }) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-muted-foreground tabular-nums">
-        <Stat icon={HardDrive} label="Downloaded">
+        <Stat icon={HardDrive} label={t("app.torrent.stats.downloaded")}>
           {torrent.size !== null
-            ? `${formatPercent(torrent.progress)} of ${formatBytes(torrent.size)}`
-            : "Size not known yet"}
+            ? t("app.torrent.stats.progressOfSize", {
+                percent: formatPercent(torrent.progress),
+                size: formatBytes(torrent.size),
+              })
+            : t("app.torrent.stats.sizeUnknown")}
         </Stat>
-        <Stat icon={Users} label="Peers">
+        <Stat icon={Users} label={t("app.torrent.stats.peers")}>
           {formatPeers(torrent.peers)}
         </Stat>
-        <Stat icon={ArrowDown} label="Download speed">
+        <Stat icon={ArrowDown} label={t("app.torrent.stats.downloadSpeed")}>
           {formatSpeed(torrent.downloadSpeed)}
         </Stat>
-        <Stat icon={ArrowUp} label="Upload speed">
+        <Stat icon={ArrowUp} label={t("app.torrent.stats.uploadSpeed")}>
           {formatSpeed(torrent.uploadSpeed)}
         </Stat>
       </div>
@@ -252,6 +270,7 @@ function FetchingMetadata({
   torrent: TorrentDetail;
   onRemove: () => void;
 }) {
+  const t = useT();
   const now = useNow();
   // When this page started waiting. addedAt counts when it's recent; an old
   // one is from an earlier session (it was opened again), not this wait.
@@ -271,19 +290,21 @@ function FetchingMetadata({
       >
         <Spinner size="lg" tone="muted" />
         <div className="flex flex-col gap-1">
-          <p className="font-medium">Finding peers and the file list…</p>
+          <p className="font-medium">{t("app.torrent.fetching.title")}</p>
           <p className="text-sm text-muted-foreground tabular-nums">
-            {formatPeers(torrent.peers)} so far · waiting{" "}
-            {formatElapsed(elapsed)}
+            {t("app.torrent.fetching.progress", {
+              peers: formatPeers(torrent.peers),
+              elapsed: formatElapsed(elapsed),
+            })}
           </p>
         </div>
       </Card>
       {elapsed >= NO_PEERS_HINT_SECONDS && (
-        <Alert tone="warning" title="Nobody seems to be sharing this">
+        <Alert tone="warning" title={t("app.torrent.noPeers.title")}>
           <div className="flex flex-col items-start gap-2">
-            Keep waiting, or remove it.
+            {t("app.torrent.noPeers.body")}
             <Button variant="outline" size="sm" onClick={onRemove}>
-              Remove…
+              {t("app.torrent.remove")}
             </Button>
           </div>
         </Alert>
@@ -298,6 +319,7 @@ function FetchingMetadata({
  * no "nobody seems to be sharing" hint here.
  */
 function CheckingData() {
+  const t = useT();
   return (
     <Card
       variant="muted"
@@ -305,10 +327,9 @@ function CheckingData() {
     >
       <Spinner size="lg" tone="muted" />
       <div className="flex flex-col gap-1">
-        <p className="font-medium">Checking downloaded data…</p>
+        <p className="font-medium">{t("app.torrent.checking.title")}</p>
         <p className="text-sm text-balance text-muted-foreground">
-          Streamy is making sure what's already downloaded is complete. The
-          videos can play when it's done.
+          {t("app.torrent.checking.body")}
         </p>
       </div>
     </Card>
@@ -329,6 +350,7 @@ function LoadError({
   retrying: boolean;
   onRetry: () => void;
 }) {
+  const t = useT();
   const add = useAddTorrent();
 
   // Removed in this window (a 404 is otherwise answered by opening it again).
@@ -337,15 +359,11 @@ function LoadError({
       <Message
         icon={CloudOff}
         title={
-          name ? (
-            <>
-              <bdi>{name}</bdi> was removed
-            </>
-          ) : (
-            "This torrent was removed"
-          )
+          name
+            ? withName(t("app.torrent.removedNamed"), name)
+            : t("app.torrent.removed")
         }
-        description="Open it again to keep watching. It downloads again."
+        description={t("app.torrent.removedBody")}
         actions={
           <>
             <Button
@@ -354,7 +372,7 @@ function LoadError({
                 add.mutate({ kind: "magnet", magnet: infoHash });
               }}
             >
-              Open it again
+              {t("app.torrent.reopen")}
             </Button>
             <HomeLink />
           </>
@@ -373,18 +391,22 @@ function LoadError({
     <Message
       icon={TriangleAlert}
       title={
-        <>
-          {error instanceof ReopenFailedError
-            ? "Couldn't open "
-            : "Couldn't load "}
-          {name ? <bdi>{name}</bdi> : "this torrent"}
-        </>
+        name
+          ? withName(
+              error instanceof ReopenFailedError
+                ? t("app.torrent.openFailedNamed")
+                : t("app.torrent.loadFailedNamed"),
+              name,
+            )
+          : error instanceof ReopenFailedError
+            ? t("app.torrent.openFailed")
+            : t("app.torrent.loadFailed")
       }
       description={errorMessage(error)}
       actions={
         <>
           <Button variant="outline" loading={retrying} onClick={onRetry}>
-            Try again
+            {t("common.tryAgain")}
           </Button>
           <HomeLink />
         </>
@@ -440,9 +462,10 @@ function Message({
 }
 
 function HomeLink() {
+  const t = useT();
   return (
     <Link to="/" className={buttonVariants({ variant: "outline" })}>
-      Home
+      {t("app.nav.home")}
     </Link>
   );
 }

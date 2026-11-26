@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { CacheInfo } from "../../shared/engine-api";
 import { ENGINE_SECRET_HEADER } from "../../shared/engine-protocol";
+import { t } from "../../shared/i18n";
 import type { ActionResult, CacheUsage } from "../../shared/settings";
 import type { Logger } from "../logs";
 import type { EngineConnection, EngineHost } from "./host";
@@ -51,10 +52,7 @@ export async function callEngine(
       signal: AbortSignal.timeout(timeoutMs),
     });
   } catch {
-    throw new EngineRequestError(
-      "Streamy couldn't reach the playback engine. Try again in a moment.",
-      null,
-    );
+    throw new EngineRequestError(t("main.engine.unreachable"), null);
   }
 
   const text = await response.text().catch(() => "");
@@ -71,7 +69,7 @@ export async function callEngine(
     throw new EngineRequestError(
       apiError.success
         ? apiError.data.error.message
-        : `The playback engine couldn't do that (error ${response.status}).`,
+        : t("main.engine.requestFailed", { status: response.status }),
       response.status,
     );
   }
@@ -104,10 +102,7 @@ export async function addTorrentFile(
   });
   const parsed = addedTorrentSchema.safeParse(data);
   if (!parsed.success) {
-    throw new EngineRequestError(
-      "The playback engine gave an answer Streamy doesn't understand.",
-      200,
-    );
+    throw new EngineRequestError(t("main.engine.badAnswer"), 200);
   }
   return parsed.data.torrent.infoHash;
 }
@@ -123,10 +118,10 @@ export interface CacheEngine {
   clear: () => Promise<ActionResult>;
 }
 
-const NOT_RUNNING: ActionResult = {
+const notRunning = (): ActionResult => ({
   status: "error",
-  message: "The playback engine isn't running. Try again in a moment.",
-};
+  message: t("main.engine.notRunning"),
+});
 
 export function createCacheEngine(
   host: Pick<EngineHost, "connection">,
@@ -155,7 +150,7 @@ export function createCacheEngine(
     },
     clear: async () => {
       const connection = host.connection();
-      if (!connection) return NOT_RUNNING;
+      if (!connection) return notRunning();
       try {
         await callEngine(connection, "/v1/cache/clear", {
           method: "POST",
@@ -169,9 +164,7 @@ export function createCacheEngine(
           return {
             status: "error",
             message:
-              error.status === 404
-                ? "This version of the playback engine can't clear videos yet."
-                : error.message,
+              error.status === 404 ? t("main.engine.noClear") : error.message,
           };
         }
         throw error;

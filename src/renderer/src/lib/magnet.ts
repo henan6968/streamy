@@ -1,3 +1,5 @@
+import { t } from "../../../shared/i18n";
+
 const HEX_HASH = /^[0-9a-f]{40}$/i;
 const BASE32_HASH = /^[a-z2-7]{32}$/i;
 
@@ -17,10 +19,10 @@ export function isInfoHash(value: string): boolean {
  */
 export function checkMagnetInput(input: string): string | null {
   const value = input.trim();
-  if (!value) return "Paste a magnet link or an info hash";
+  if (!value) return t("app.magnet.empty");
   if (HEX_HASH.test(value)) return null;
   if (value.toLowerCase().startsWith("magnet:?")) return null;
-  return "That doesn't look like a magnet link (magnet:?xt=…) or a 40-character info hash";
+  return t("app.magnet.invalid");
 }
 
 /** Looks complete enough to add right away when pasted. */

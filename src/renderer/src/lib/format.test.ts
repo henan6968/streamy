@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { setLocale } from "../../../shared/i18n";
 import {
   formatBytes,
   formatDelay,
@@ -12,6 +13,12 @@ import {
   formatTime,
   formatTimeLeft,
 } from "@/lib/format";
+
+// Most tests are about English. The ones about the language switch it, and
+// every test after them starts over in English.
+afterEach(() => {
+  setLocale("en");
+});
 
 describe("formatBytes", () => {
   it.each([
@@ -30,16 +37,15 @@ describe("formatBytes", () => {
     expect(formatBytes(1_234_567, "de-DE")).toBe("1,2 MB");
   });
 
-  // The interface is English: "1,2 MB" would look wrong next to it.
-  it("writes numbers in English, whatever the OS language", () => {
+  // Numbers follow the language picked in Settings, never the OS language.
+  it("writes numbers in the interface's language", () => {
+    setLocale("zh-CN");
     const numberFormat = vi.spyOn(Intl, "NumberFormat");
 
     expect(formatBytes(1_234_567)).toBe("1.2 MB");
-    expect(formatSpeed(1_468_006)).toBe("1.5 MB/s");
-    expect(numberFormat).toHaveBeenCalledWith("en", expect.anything());
-    expect(numberFormat.mock.calls.every(([locale]) => locale === "en")).toBe(
-      true,
-    );
+    expect(formatBytes(0)).toBe("0字节");
+    expect(formatSpeed(1_468_006)).toBe("1.5 MB/秒");
+    expect(numberFormat).toHaveBeenCalledWith("zh-CN", expect.anything());
   });
 });
 
@@ -119,6 +125,12 @@ describe("formatElapsed", () => {
     expect(formatElapsed(185)).toBe("3 min 05 s");
     expect(formatElapsed(-4)).toBe("0 s");
   });
+
+  it("writes its units in the interface's language", () => {
+    setLocale("zh-CN");
+    expect(formatElapsed(12.7)).toBe("12 秒");
+    expect(formatElapsed(185)).toBe("3 分 05 秒");
+  });
 });
 
 describe("formatTimeLeft", () => {
@@ -131,6 +143,14 @@ describe("formatTimeLeft", () => {
     [-10, "Less than a minute left"],
   ])("%s s → %s", (seconds, expected) => {
     expect(formatTimeLeft(seconds)).toBe(expected);
+  });
+
+  it("is written in the interface's language", () => {
+    setLocale("zh-CN");
+    expect(formatTimeLeft(0)).toBe("剩余不到 1 分钟");
+    expect(formatTimeLeft(720)).toBe("剩余 12 分钟");
+    expect(formatTimeLeft(3600)).toBe("剩余 1 小时");
+    expect(formatTimeLeft(3900)).toBe("剩余 1 小时 5 分钟");
   });
 });
 
@@ -145,6 +165,12 @@ describe("formatDelay", () => {
     expect(formatDelay(-0.04)).toBe("0.0 s");
     expect(formatDelay(0.1 + 0.2)).toBe("+0.3 s");
   });
+
+  it("is written in the interface's language", () => {
+    setLocale("zh-CN");
+    expect(formatDelay(0.3)).toBe("+0.3 秒");
+    expect(formatDelay(0)).toBe("0.0 秒");
+  });
 });
 
 describe("formatPeers / formatSwarm", () => {
@@ -154,6 +180,12 @@ describe("formatPeers / formatSwarm", () => {
     expect(formatSwarm({ peers: 12, downloadSpeed: 1_400_000 })).toMatch(
       /^12 peers · 1[.,]4 MB\/s$/,
     );
+  });
+
+  it("is written in the interface's language", () => {
+    setLocale("zh-CN");
+    expect(formatPeers(1)).toBe("1 个节点");
+    expect(formatPeers(12)).toBe("12 个节点");
   });
 });
 
@@ -184,14 +216,16 @@ describe("formatRelativeTime", () => {
     expect(formatRelativeTime("not a date", now)).toBeNull();
   });
 
-  // "Opened vor 5 Minuten" mixed two languages in one sentence.
-  it("writes English, whatever the OS language", () => {
+  // "Opened vor 5 Minuten" mixed two languages in one sentence: dates follow
+  // the interface's language, never the OS language.
+  it("writes dates in the interface's language", () => {
+    setLocale("zh-CN");
     const relative = vi.spyOn(Intl, "RelativeTimeFormat");
     const dates = vi.spyOn(Intl, "DateTimeFormat");
 
-    expect(formatRelativeTime(ago(5 * 60_000), now)).toBe("5 minutes ago");
-    expect(formatRelativeTime("2026-10-02T12:00:00.000Z", now)).toBe("Oct 2");
-    expect(relative).toHaveBeenCalledWith("en", expect.anything());
-    expect(dates).toHaveBeenCalledWith("en", expect.anything());
+    expect(formatRelativeTime(ago(5 * 60_000), now)).toBe("5分钟前");
+    expect(formatRelativeTime("2026-10-02T12:00:00.000Z", now)).toBe("10月2日");
+    expect(relative).toHaveBeenCalledWith("zh-CN", expect.anything());
+    expect(dates).toHaveBeenCalledWith("zh-CN", expect.anything());
   });
 });

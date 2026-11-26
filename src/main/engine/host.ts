@@ -11,6 +11,7 @@ import {
   type EngineInitMessage,
   type MainToEngineMessage,
 } from "../../shared/engine-protocol";
+import { t } from "../../shared/i18n";
 import { registerSecret } from "../../shared/redact";
 import type { Logger } from "../logs";
 import { isErrnoCode } from "../storage/json-file";
@@ -83,9 +84,10 @@ interface Waiter {
   timer: NodeJS.Timeout;
 }
 
-const STOPPED_UNEXPECTEDLY = "The playback engine stopped unexpectedly.";
-const COULD_NOT_START = "The playback engine couldn't start.";
-const TOO_SLOW = "The playback engine took too long to start.";
+const stoppedUnexpectedly = () => t("main.engine.stoppedUnexpectedly");
+const couldNotStart = () => t("main.engine.cantStart");
+const tooSlowToStart = () => t("main.engine.tooSlowToStart");
+
 /** Longest line from the engine's stdout/stderr kept in main.log. */
 const MAX_OUTPUT_LINE = 2_000;
 
@@ -307,7 +309,7 @@ export class EngineHost {
       });
     } catch (error) {
       log.error({ err: error }, "Could not start the engine");
-      this.#crashed(COULD_NOT_START);
+      this.#crashed(couldNotStart());
       return;
     }
 
@@ -434,10 +436,10 @@ export class EngineHost {
     // `fatal` message, if it arrived, is in the log.)
     this.#crashed(
       run.tooSlow
-        ? TOO_SLOW
+        ? tooSlowToStart()
         : run.port === null
-          ? COULD_NOT_START
-          : STOPPED_UNEXPECTEDLY,
+          ? couldNotStart()
+          : stoppedUnexpectedly(),
     );
   }
 
@@ -544,7 +546,7 @@ export class EngineHost {
   }
 
   #failedMessage(): string {
-    return this.#status.error ?? STOPPED_UNEXPECTEDLY;
+    return this.#status.error ?? stoppedUnexpectedly();
   }
 
   #rejectWaiters(error: Error): void {

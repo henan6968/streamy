@@ -39,6 +39,9 @@ Streamy isn't code-signed yet, so your computer warns you the first time:
 
 ## Good to know
 
+Streamy's interface comes in English and Simplified Chinese. Pick one in
+Settings → General → Language; "System" follows your computer's language.
+
 While a torrent is active, the other people downloading or sharing it (its
 peers) can see your IP address. That's how torrents work. A VPN keeps it
 private.

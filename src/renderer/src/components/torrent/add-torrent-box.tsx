@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { useAddAndOpen } from "@/hooks/use-add-and-open";
+import { useT } from "@/lib/i18n";
 import { checkMagnetInput, isTorrentFile, looksLikeMagnet } from "@/lib/magnet";
 import { isMac, isModKey } from "@/lib/platform";
 
@@ -18,6 +19,7 @@ import { isMac, isModKey } from "@/lib/platform";
  * ⌘K / Ctrl+K jumps here.
  */
 export function AddTorrentBox() {
+  const t = useT();
   const { addAndOpen, pendingInput } = useAddAndOpen();
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | undefined>();
@@ -55,7 +57,7 @@ export function AddTorrentBox() {
 
   const addFile = (file: File) => {
     if (!isTorrentFile(file)) {
-      setError(`"${file.name}" isn't a .torrent file`);
+      setError(t("app.add.notTorrent", { name: file.name }));
       return;
     }
     setError(undefined);
@@ -90,7 +92,7 @@ export function AddTorrentBox() {
       <div className="flex w-full items-start gap-2">
         <Field
           ref={input}
-          label="Magnet link or info hash"
+          label={t("app.add.label")}
           hideLabel
           size="lg"
           className="flex-1 text-left"
@@ -114,7 +116,7 @@ export function AddTorrentBox() {
           disabled={addingFile}
         >
           {!addingMagnet && <Play className="fill-current" aria-hidden />}
-          Play
+          {t("common.play")}
         </Button>
       </div>
 
@@ -127,9 +129,9 @@ export function AddTorrentBox() {
           onClick={() => fileInput.current?.click()}
         >
           {!addingFile && <FolderOpen aria-hidden />}
-          Open a .torrent file
+          {t("app.add.openFile")}
         </Button>
-        <span>or drop one anywhere</span>
+        <span>{t("app.add.orDrop")}</span>
       </div>
 
       <input
@@ -137,7 +139,7 @@ export function AddTorrentBox() {
         type="file"
         accept=".torrent,application/x-bittorrent"
         className="hidden"
-        aria-label="Choose a .torrent file"
+        aria-label={t("app.add.chooseFile")}
         onChange={(event) => {
           const file = event.target.files?.[0];
           // Reset, so picking the same file again still fires onChange.

@@ -9,6 +9,7 @@ import {
   type WebContents,
 } from "electron";
 import { IpcChannel, type TorrentFileOpened } from "../shared/api";
+import { t } from "../shared/i18n";
 import { addTorrentFile, EngineRequestError } from "./engine/client";
 import type { EngineHost } from "./engine/host";
 import type { Logger } from "./logs";
@@ -26,6 +27,9 @@ import { sendWhenLoaded } from "./ui-messages";
 
 /** The engine refuses bigger .torrent files too. */
 export const MAX_TORRENT_FILE_BYTES = 10 * 1024 * 1024;
+
+/** That limit in MB, for the message about a file that's too big. */
+const MAX_TORRENT_FILE_MB = MAX_TORRENT_FILE_BYTES / (1024 * 1024);
 
 /** How long a file opened at launch waits for the engine to start. */
 const ENGINE_WAIT_MS = 60_000;
@@ -119,14 +123,17 @@ export async function readTorrentFile(file: string): Promise<Uint8Array> {
   try {
     const stats = await handle.stat();
     if (!stats.isFile()) {
-      throw new TorrentFileError(`"${name}" isn't a file.`, "not-a-file");
+      throw new TorrentFileError(
+        t("main.torrent.notAFile", { name }),
+        "not-a-file",
+      );
     }
     if (stats.size === 0) {
-      throw new TorrentFileError(`"${name}" is empty.`, "empty");
+      throw new TorrentFileError(t("main.torrent.empty", { name }), "empty");
     }
     if (stats.size > MAX_TORRENT_FILE_BYTES) {
       throw new TorrentFileError(
-        `"${name}" is too big to be a torrent file (over 10 MB).`,
+        t("main.torrent.tooBig", { name, limit: MAX_TORRENT_FILE_MB }),
         "too-big",
       );
     }
@@ -154,18 +161,27 @@ export async function readTorrentFile(file: string): Promise<Uint8Array> {
 
 function readError(error: unknown, name: string): TorrentFileError {
   if (isErrnoCode(error, "ENOENT")) {
-    return new TorrentFileError(`"${name}" couldn't be found.`, "missing");
+    return new TorrentFileError(
+      t("main.torrent.notFound", { name }),
+      "missing",
+    );
   }
   if (isErrnoCode(error, "EISDIR")) {
-    return new TorrentFileError(`"${name}" isn't a file.`, "not-a-file");
+    return new TorrentFileError(
+      t("main.torrent.notAFile", { name }),
+      "not-a-file",
+    );
   }
   if (isErrnoCode(error, "EACCES") || isErrnoCode(error, "EPERM")) {
     return new TorrentFileError(
-      `Streamy isn't allowed to read "${name}".`,
+      t("main.torrent.notAllowed", { name }),
       "not-allowed",
     );
   }
-  return new TorrentFileError(`Streamy couldn't read "${name}".`, "unreadable");
+  return new TorrentFileError(
+    t("main.torrent.unreadable", { name }),
+    "unreadable",
+  );
 }
 
 interface TorrentFileOptions {
@@ -203,7 +219,7 @@ export function receiveTorrentFiles({
       const bytes = await readTorrentFile(file);
       const connection = await engine.whenRunning(ENGINE_WAIT_MS).catch(() => {
         throw new TorrentFileError(
-          `"${name}" couldn't be opened: the playback engine isn't running. Try again in a moment.`,
+          t("main.torrent.engineNotRunning", { name }),
           "engine-not-running",
         );
       });
@@ -220,10 +236,13 @@ export function receiveTorrentFiles({
       if (error instanceof EngineRequestError) {
         return {
           status: "error",
-          message: `"${name}" couldn't be opened. ${error.message}`,
+          message: t("main.torrent.cantOpenReason", {
+            name,
+            reason: error.message,
+          }),
         };
       }
-      return { status: "error", message: `"${name}" couldn't be opened.` };
+      return { status: "error", message: t("main.torrent.cantOpen", { name }) };
     }
   };
 
@@ -262,10 +281,10 @@ export function receiveTorrentFiles({
     fromArgv,
     chooseAndOpen: async (window) => {
       const options: OpenDialogOptions = {
-        title: "Open a torrent file",
-        buttonLabel: "Open",
+        title: t("main.torrent.openTitle"),
+        buttonLabel: t("common.open"),
         properties: ["openFile"],
-        filters: [{ name: "Torrent files", extensions: ["torrent"] }],
+        filters: [{ name: t("main.torrent.filter"), extensions: ["torrent"] }],
       };
       const result = window
         ? await dialog.showOpenDialog(window, options)

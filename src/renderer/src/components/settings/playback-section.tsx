@@ -1,3 +1,4 @@
+import type { MessageKey } from "../../../../shared/i18n";
 import {
   type SettingsSnapshot,
   type SettingsUpdate,
@@ -10,6 +11,7 @@ import { SettingRow } from "@/components/settings/setting-row";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/cn";
+import { useT } from "@/lib/i18n";
 import { languageOptions } from "@/lib/languages";
 import { settingsApi } from "@/lib/settings";
 import {
@@ -21,22 +23,28 @@ import {
 // <select> values can't be null, so "Automatic" gets a name of its own.
 const AUTOMATIC = "auto";
 
-const SIZE_OPTIONS: { value: SubtitleSize; label: string }[] = [
-  { value: "s", label: "S" },
-  { value: "m", label: "M" },
-  { value: "l", label: "L" },
-  { value: "xl", label: "XL" },
+const SIZE_OPTIONS: { value: SubtitleSize; labelKey: MessageKey }[] = [
+  { value: "s", labelKey: "settings.playback.subtitle.size.s" },
+  { value: "m", labelKey: "settings.playback.subtitle.size.m" },
+  { value: "l", labelKey: "settings.playback.subtitle.size.l" },
+  { value: "xl", labelKey: "settings.playback.subtitle.size.xl" },
 ];
 
-const BACKGROUND_OPTIONS: { value: SubtitleBackground; label: string }[] = [
-  { value: "none", label: "None" },
-  { value: "shadow", label: "Shadow" },
-  { value: "box", label: "Box" },
+const BACKGROUND_OPTIONS: {
+  value: SubtitleBackground;
+  labelKey: MessageKey;
+}[] = [
+  { value: "none", labelKey: "settings.playback.subtitle.background.none" },
+  {
+    value: "shadow",
+    labelKey: "settings.playback.subtitle.background.shadow",
+  },
+  { value: "box", labelKey: "settings.playback.subtitle.background.box" },
 ];
 
-const COLOR_OPTIONS: { value: SubtitleColor; label: string }[] = [
-  { value: "white", label: "White" },
-  { value: "yellow", label: "Yellow" },
+const COLOR_OPTIONS: { value: SubtitleColor; labelKey: MessageKey }[] = [
+  { value: "white", labelKey: "settings.playback.subtitle.color.white" },
+  { value: "yellow", labelKey: "settings.playback.subtitle.color.yellow" },
 ];
 
 function update(patch: SettingsUpdate) {
@@ -46,6 +54,7 @@ function update(patch: SettingsUpdate) {
 }
 
 export function PlaybackSection({ snapshot }: { snapshot: SettingsSnapshot }) {
+  const t = useT();
   const {
     audioLanguage,
     subtitleLanguage,
@@ -61,11 +70,24 @@ export function PlaybackSection({ snapshot }: { snapshot: SettingsSnapshot }) {
     subtitleLanguage === SUBTITLES_OFF ? null : subtitleLanguage,
   ]);
 
+  const sizeOptions = SIZE_OPTIONS.map(({ value, labelKey }) => ({
+    value,
+    label: t(labelKey),
+  }));
+  const backgroundOptions = BACKGROUND_OPTIONS.map(({ value, labelKey }) => ({
+    value,
+    label: t(labelKey),
+  }));
+  const colorOptions = COLOR_OPTIONS.map(({ value, labelKey }) => ({
+    value,
+    label: t(labelKey),
+  }));
+
   return (
     <>
       <SettingRow
-        title="Audio language"
-        description="Played when a video has several. Automatic uses the video's own choice."
+        title={t("settings.playback.audioLanguage.title")}
+        description={t("settings.playback.audioLanguage.description")}
       >
         {({ titleId, descriptionId }) => (
           <Select
@@ -79,7 +101,7 @@ export function PlaybackSection({ snapshot }: { snapshot: SettingsSnapshot }) {
               update({ audioLanguage: value === AUTOMATIC ? null : value });
             }}
           >
-            <option value={AUTOMATIC}>Automatic</option>
+            <option value={AUTOMATIC}>{t("common.automatic")}</option>
             {languages.map(({ code, name }) => (
               <option key={code} value={code}>
                 {name}
@@ -90,8 +112,8 @@ export function PlaybackSection({ snapshot }: { snapshot: SettingsSnapshot }) {
       </SettingRow>
 
       <SettingRow
-        title="Subtitles"
-        description="Automatic shows them when the video says to, like for foreign-language parts."
+        title={t("settings.playback.subtitles.title")}
+        description={t("settings.playback.subtitles.description")}
       >
         {({ titleId, descriptionId }) => (
           <Select
@@ -107,8 +129,8 @@ export function PlaybackSection({ snapshot }: { snapshot: SettingsSnapshot }) {
               });
             }}
           >
-            <option value={SUBTITLES_OFF}>Off</option>
-            <option value={AUTOMATIC}>Automatic</option>
+            <option value={SUBTITLES_OFF}>{t("common.off")}</option>
+            <option value={AUTOMATIC}>{t("common.automatic")}</option>
             {languages.map(({ code, name }) => (
               <option key={code} value={code}>
                 {name}
@@ -118,7 +140,7 @@ export function PlaybackSection({ snapshot }: { snapshot: SettingsSnapshot }) {
         )}
       </SettingRow>
 
-      <SettingRow stacked title="Subtitle style">
+      <SettingRow stacked title={t("settings.playback.subtitleStyle.title")}>
         <div className="flex flex-col gap-4">
           <SubtitlePreview
             size={subtitleSize}
@@ -127,39 +149,39 @@ export function PlaybackSection({ snapshot }: { snapshot: SettingsSnapshot }) {
           />
           <div className="grid grid-cols-[auto_1fr] items-center gap-x-6 gap-y-3 text-sm">
             <span className="text-muted-foreground" aria-hidden>
-              Size
+              {t("settings.playback.subtitle.size")}
             </span>
             <SegmentedControl
-              label="Subtitle size"
+              label={t("settings.playback.subtitle.sizeLabel")}
               size="sm"
               className="w-fit"
-              options={SIZE_OPTIONS}
+              options={sizeOptions}
               value={subtitleSize}
               onChange={(next) => {
                 update({ subtitleSize: next });
               }}
             />
             <span className="text-muted-foreground" aria-hidden>
-              Background
+              {t("settings.playback.subtitle.background")}
             </span>
             <SegmentedControl
-              label="Subtitle background"
+              label={t("settings.playback.subtitle.backgroundLabel")}
               size="sm"
               className="w-fit"
-              options={BACKGROUND_OPTIONS}
+              options={backgroundOptions}
               value={subtitleBackground}
               onChange={(next) => {
                 update({ subtitleBackground: next });
               }}
             />
             <span className="text-muted-foreground" aria-hidden>
-              Color
+              {t("settings.playback.subtitle.color")}
             </span>
             <SegmentedControl
-              label="Subtitle color"
+              label={t("settings.playback.subtitle.colorLabel")}
               size="sm"
               className="w-fit"
-              options={COLOR_OPTIONS}
+              options={colorOptions}
               value={subtitleColor}
               onChange={(next) => {
                 update({ subtitleColor: next });
@@ -182,6 +204,8 @@ function SubtitlePreview({
   background: SubtitleBackground;
   color: SubtitleColor;
 }) {
+  const t = useT();
+
   return (
     <div
       aria-hidden
@@ -201,7 +225,7 @@ function SubtitlePreview({
             SUBTITLE_BACKGROUND_CLASS[background],
           )}
         >
-          This is how subtitles will look.
+          {t("settings.playback.subtitle.preview")}
         </span>
       </p>
     </div>

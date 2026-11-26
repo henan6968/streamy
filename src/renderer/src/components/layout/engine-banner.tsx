@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useEngineStatus } from "@/hooks/use-engine-status";
 import { useHealth } from "@/hooks/use-health";
 import { engineHasRun } from "@/lib/engine-status";
+import { useT } from "@/lib/i18n";
 import { runAction, openSettings } from "@/lib/settings";
 import { toast } from "@/lib/toast";
 
@@ -18,6 +19,7 @@ export const SLOW_START_MS = 3000;
  * nothing during a normal launch.
  */
 export function EngineBanner() {
+  const t = useT();
   const status = useEngineStatus();
   const slowStart = useSlowStart(status);
   const running = status === null || status.state === "running";
@@ -28,10 +30,10 @@ export function EngineBanner() {
     return (
       <Banner
         tone="danger"
-        title="The playback engine keeps stopping."
+        title={t("app.engine.failed.title")}
         actions={<OpenLogsButton />}
       >
-        Streamy will try again in a minute.
+        {t("app.engine.failed.body")}
       </Banner>
     );
   }
@@ -45,11 +47,7 @@ export function EngineBanner() {
       <Banner
         busy
         tone="warning"
-        title={
-          hasRun
-            ? "Reconnecting to the playback engine…"
-            : "Starting the playback engine…"
-        }
+        title={hasRun ? t("app.engine.reconnecting") : t("app.engine.starting")}
       />
     );
   }
@@ -58,7 +56,7 @@ export function EngineBanner() {
     return (
       <Banner
         tone="warning"
-        title="Your disk is almost full."
+        title={t("app.engine.diskFull.title")}
         actions={
           <Button
             size="sm"
@@ -69,11 +67,11 @@ export function EngineBanner() {
             }}
           >
             <HardDrive />
-            Storage settings
+            {t("app.engine.diskFull.storage")}
           </Button>
         }
       >
-        Downloading is paused; videos already downloaded still play.
+        {t("app.engine.diskFull.body")}
       </Banner>
     );
   }
@@ -101,6 +99,7 @@ function useSlowStart(status: EngineStatus | null): boolean {
 }
 
 function OpenLogsButton() {
+  const t = useT();
   return (
     <Button
       size="sm"
@@ -108,13 +107,16 @@ function OpenLogsButton() {
       className="h-7 bg-transparent px-2.5"
       onClick={() => {
         void runAction(() => window.streamy.openLogs()).then((message) => {
-          if (message)
-            toast.error("Couldn't open the logs", { description: message });
+          if (message) {
+            toast.error(t("app.engine.failed.logsFailed"), {
+              description: message,
+            });
+          }
         });
       }}
     >
       <FileText />
-      Open logs
+      {t("app.engine.failed.openLogs")}
     </Button>
   );
 }

@@ -2,12 +2,14 @@ import { TriangleAlert } from "lucide-react";
 import { useRouteError } from "react-router";
 import { TitleBar } from "@/components/title-bar";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n";
 
 /**
  * A page crashed (a bug). Keeps the title bar, so the window can still be
  * moved, and offers a way out.
  */
 export function RouteError() {
+  const t = useT();
   const error = useRouteError();
   console.error("A page crashed:", error);
 
@@ -19,9 +21,9 @@ export function RouteError() {
           <TriangleAlert className="size-6" aria-hidden />
         </span>
         <div className="flex flex-col gap-1">
-          <h1 className="text-lg font-semibold">Something went wrong</h1>
+          <h1 className="text-lg font-semibold">{t("app.routeError.title")}</h1>
           <p className="text-sm text-balance text-muted-foreground">
-            This page stopped working. Going back to the start usually helps.
+            {t("app.routeError.body")}
           </p>
         </div>
         <Button
@@ -31,7 +33,7 @@ export function RouteError() {
             window.location.assign("/");
           }}
         >
-          Back to the start
+          {t("app.routeError.back")}
         </Button>
       </main>
     </div>

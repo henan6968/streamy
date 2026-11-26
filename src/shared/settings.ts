@@ -9,6 +9,14 @@
 export const THEMES = ["system", "light", "dark"] as const;
 export type Theme = (typeof THEMES)[number];
 
+/**
+ * The language of everything Streamy says. "system" follows the computer's
+ * own language; the others are the ones with a dictionary
+ * (src/shared/i18n/messages/).
+ */
+export const LANGUAGES = ["system", "en", "zh-CN"] as const;
+export type Language = (typeof LANGUAGES)[number];
+
 /** Interface size (zoom). 1 = 100%. */
 export const UI_SCALES = [0.9, 1, 1.1, 1.25] as const;
 export type UiScale = (typeof UI_SCALES)[number];
@@ -54,6 +62,8 @@ export const MAX_CONNECTION_CHOICES = [25, 50, 100, 200] as const;
 export interface Settings {
   /** "system" follows the OS light/dark mode. */
   theme: Theme;
+  /** The language of Streamy's text. "system" follows the computer's. */
+  language: Language;
   uiScale: UiScale;
   /** Folder where videos are kept while watching. null = the default folder. */
   cacheDir: string | null;

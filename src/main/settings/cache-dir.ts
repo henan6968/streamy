@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { lstat, readdir, rm } from "node:fs/promises";
 import path from "node:path";
+import { t } from "../../shared/i18n";
 import type { CacheUsage } from "../../shared/settings";
 import { CACHE_CONTENT_DIRS, CACHE_MARKER } from "../../shared/video-folder";
 import { isErrnoCode } from "../storage/json-file";
@@ -17,10 +18,6 @@ export { CACHE_CONTENT_DIRS, CACHE_MARKER };
 // - It only uses a chosen folder directly if it's brand new, truly empty, or
 //   already Streamy's. Otherwise (and always for Downloads, Desktop, a drive
 //   root…) it makes a "Streamy" folder inside it.
-
-const MARKER_TEXT =
-  "Streamy keeps the videos you watch in this folder.\n" +
-  "It only ever deletes what it downloaded itself (the torrents, playback and subtitles folders).\n";
 
 /** Made inside a chosen folder that Streamy shouldn't take over. */
 export const CACHE_SUBFOLDER = "Streamy";
@@ -107,12 +104,10 @@ function inspect(dir: string): FolderState {
 function markAsCache(dir: string): void {
   mkdirSync(dir, { recursive: true });
   const marker = path.join(dir, CACHE_MARKER);
-  if (!existsSync(marker)) writeFileSync(marker, MARKER_TEXT);
+  if (!existsSync(marker)) {
+    writeFileSync(marker, t("main.videoFolder.markerNote"));
+  }
 }
-
-const CANT_OPEN = "Streamy can't open that folder. Choose a different one.";
-const CANT_WRITE =
-  "Streamy can't save files in that folder. Choose a different one.";
 
 interface PrepareOptions {
   /** Folders Streamy must never use directly (home, Downloads, Desktop…). */
@@ -125,11 +120,13 @@ export function prepareCacheDir(
   { protectedDirs }: PrepareOptions,
 ): string {
   if (!path.isAbsolute(chosen)) {
-    throw new CacheDirError("Choose a folder on this computer.");
+    throw new CacheDirError(t("main.videoFolder.chooseLocal"));
   }
 
   const state = inspect(chosen);
-  if (state === "unreadable") throw new CacheDirError(CANT_OPEN);
+  if (state === "unreadable") {
+    throw new CacheDirError(t("main.videoFolder.cantOpen"));
+  }
   const useDirectly =
     state === "ours" ||
     ((state === "missing" || state === "empty") &&
@@ -141,12 +138,18 @@ export function prepareCacheDir(
     const subfolderState = inspect(dir);
     if (subfolderState === "unreadable") {
       throw new CacheDirError(
-        `Streamy can't use the "${CACHE_SUBFOLDER}" item in ${chosen}. Choose a different folder.`,
+        t("main.videoFolder.cantUseItem", {
+          name: CACHE_SUBFOLDER,
+          folder: chosen,
+        }),
       );
     }
     if (subfolderState === "in-use") {
       throw new CacheDirError(
-        `There's already a "${CACHE_SUBFOLDER}" folder with other files in ${chosen}. Choose a different folder.`,
+        t("main.videoFolder.alreadyThere", {
+          name: CACHE_SUBFOLDER,
+          folder: chosen,
+        }),
       );
     }
   }
@@ -154,7 +157,7 @@ export function prepareCacheDir(
   try {
     markAsCache(dir);
   } catch {
-    throw new CacheDirError(CANT_WRITE);
+    throw new CacheDirError(t("main.videoFolder.cantWrite"));
   }
   return dir;
 }
@@ -208,9 +211,7 @@ async function folderSize(dir: string): Promise<number> {
 export async function clearCache(dir: string): Promise<void> {
   if (!existsSync(dir)) return;
   if (!existsSync(path.join(dir, CACHE_MARKER))) {
-    throw new CacheDirError(
-      "This doesn't look like Streamy's video folder, so nothing was deleted.",
-    );
+    throw new CacheDirError(t("main.videoFolder.notOurs"));
   }
   for (const name of CACHE_CONTENT_DIRS) {
     await rm(path.join(dir, name), {

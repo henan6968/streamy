@@ -1,3 +1,4 @@
+import { t } from "../../../../shared/i18n";
 import { AppError, ErrorCode } from "../../../http/errors";
 import { LibraryError, type LibraryStore } from "../../../library";
 import { engineServices } from "../../../services";
@@ -5,12 +6,15 @@ import { engineServices } from "../../../services";
 // What the library routes share: getting the library, and turning its
 // errors into the API's.
 
-const UNAVAILABLE = "The library isn't available right now";
-
 /** The engine's library, or 503 outside a running engine. */
 export function requireLibrary(): LibraryStore {
   const library = engineServices()?.library;
-  if (!library) throw new AppError(ErrorCode.ServiceUnavailable, UNAVAILABLE);
+  if (!library) {
+    throw new AppError(
+      ErrorCode.ServiceUnavailable,
+      t("engine.errors.libraryUnavailable"),
+    );
+  }
   return library;
 }
 
@@ -21,12 +25,12 @@ export function toApiError(err: unknown): unknown {
     case "not_found":
       return new AppError(
         ErrorCode.NotFound,
-        "This torrent isn't in the library",
+        t("engine.errors.torrentNotInLibrary"),
       );
     case "invalid_input":
       return new AppError(
         ErrorCode.ValidationFailed,
-        "Some fields are invalid",
+        t("engine.errors.invalidFields"),
         {
           issues: [{ path: err.field ?? "", message: err.message }],
         },
@@ -34,7 +38,10 @@ export function toApiError(err: unknown): unknown {
     case "closed":
     case "newer_version":
     case "unavailable":
-      return new AppError(ErrorCode.ServiceUnavailable, UNAVAILABLE);
+      return new AppError(
+        ErrorCode.ServiceUnavailable,
+        t("engine.errors.libraryUnavailable"),
+      );
   }
 }
 

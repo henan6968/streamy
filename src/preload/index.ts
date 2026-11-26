@@ -8,6 +8,8 @@ import {
   type TorrentFileOpened,
   type UpdateStatus,
 } from "../shared/api";
+import { resolveLocale } from "../shared/i18n/resolve";
+import { type Locale, LOCALES } from "../shared/i18n/types";
 import type {
   ActionResult,
   CacheUsage,
@@ -23,6 +25,27 @@ const platform: Platform =
   process.platform === "darwin" || process.platform === "win32"
     ? process.platform
     : "linux";
+
+const LOCALE_ARGUMENT = "--streamy-locale=";
+const SYSTEM_LOCALE_ARGUMENT = "--streamy-system-locale=";
+
+/** The value of a `--name=value` argument main passed to this window. */
+function argument(name: string): string | undefined {
+  return process.argv
+    .find((value) => value.startsWith(name))
+    ?.slice(name.length);
+}
+
+/**
+ * The language the window opens in. Main passes it in the window's arguments
+ * (window.ts), so the first frame is already right; without it (a page loaded
+ * by hand), the computer's own language is the best guess.
+ */
+function windowLocale(): Locale {
+  const value = argument(LOCALE_ARGUMENT);
+  const match = LOCALES.find((locale) => locale === value);
+  return match ?? resolveLocale("system", navigator.language);
+}
 
 /** Calls the main process. The result type is what its handler returns. */
 function invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
@@ -45,6 +68,8 @@ function subscribe(
 
 const api: StreamyApi = {
   platform,
+  initialLocale: windowLocale(),
+  systemLocale: argument(SYSTEM_LOCALE_ARGUMENT) ?? navigator.language,
   versions: {
     electron: process.versions.electron,
     chrome: process.versions.chrome,

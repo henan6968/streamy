@@ -1,6 +1,7 @@
 // Shared by the main process, the preload script and the UI.
 // No runtime dependencies here: the sandboxed preload can't load packages.
 
+import type { Locale } from "./i18n/types";
 import type {
   ActionResult,
   CacheUsage,
@@ -165,6 +166,17 @@ export interface SystemApi {
 /** What the preload script exposes to the UI as `window.streamy`. */
 export interface StreamyApi {
   platform: Platform;
+  /**
+   * The language the window was opened in (the setting, resolved by main), so
+   * the first frame is already in it, before the settings arrive. The UI
+   * follows the settings from then on.
+   */
+  initialLocale: Locale;
+  /**
+   * The computer's own language ("zh-CN", "en-US"), as main reads it. The UI
+   * resolves the "system" setting with it, so it can't disagree with main.
+   */
+  systemLocale: string;
   versions: { electron: string; chrome: string; node: string };
   getAppInfo: () => Promise<AppInfo>;
   /** Restarts Streamy (e.g. after changing hardware acceleration). */

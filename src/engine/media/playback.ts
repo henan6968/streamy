@@ -12,6 +12,7 @@ import type {
   SubtitleCuesResponse,
 } from "../../shared/engine-api";
 import { redact } from "../../shared/redact";
+import { t } from "../../shared/i18n";
 import { cachePaths, getRuntime } from "../config";
 import { AppError, ErrorCode } from "../http/errors";
 import { logger } from "../lib/logger";
@@ -86,12 +87,19 @@ const END_SLACK_SECONDS = 5;
 
 export const HLS_FILE_PATTERN = /^(index\.m3u8|init\.mp4|seg_\d{5}\.m4s)$/;
 
-// What people see. ffmpeg's own output stays in the log.
-const START_FAILED_MESSAGE = "Streamy couldn't prepare this video for playing.";
-const PLAYBACK_FAILED_MESSAGE =
-  "Streamy couldn't prepare the rest of this video.";
-const SUPERSEDED_MESSAGE = "A newer playback replaced this one";
-const STOPPED_MESSAGE = "This playback was stopped before it started";
+// What people see (in the language set with setLocale()). ffmpeg's own
+// output stays in the log.
+function startFailedError() {
+  return new AppError(ErrorCode.Internal, t("engine.playback.startFailed"));
+}
+
+function stoppedError() {
+  return new AppError(ErrorCode.NotFound, t("engine.playback.stopped"));
+}
+
+function supersededError() {
+  return new AppError(ErrorCode.Conflict, t("engine.playback.superseded"));
+}
 
 /**
  * ffmpeg lines that mean it lost its input (the connection dropped and
@@ -458,7 +466,7 @@ async function settleExit(session: Session, run: FfmpegRun) {
     }
   }
   session.state = "error";
-  session.error = PLAYBACK_FAILED_MESSAGE;
+  session.error = t("engine.playback.lostInput");
   log.error(
     {
       id: session.id,
@@ -493,10 +501,10 @@ function throwIfCancelled(session: Session | null, signal: AbortSignal) {
   if (signal.aborted) {
     throw signal.reason instanceof AppError
       ? signal.reason
-      : new AppError(ErrorCode.BadRequest, "The request was cancelled");
+      : new AppError(ErrorCode.BadRequest, t("engine.errors.requestCancelled"));
   }
   if (session?.stopping) {
-    throw new AppError(ErrorCode.NotFound, STOPPED_MESSAGE);
+    throw stoppedError();
   }
 }
 
@@ -541,10 +549,6 @@ function hardwareEncoderFailed(session: Session, job: SessionJob): boolean {
   );
 }
 
-function startFailedError() {
-  return new AppError(ErrorCode.Internal, START_FAILED_MESSAGE);
-}
-
 /**
  * Runs ffmpeg until the first segment exists. Retries once with libx264
  * when a hardware encoder fails, and once without subtitle outputs.
@@ -576,7 +580,7 @@ async function startFfmpeg(
       );
       throw new AppError(
         ErrorCode.ServiceUnavailable,
-        "The video didn't start in time. The torrent may be too slow.",
+        t("engine.playback.startTimedOut"),
       );
     }
 
@@ -626,7 +630,7 @@ async function startFfmpeg(
     if (run.code === 0 && outcome !== "ready") {
       throw new AppError(
         ErrorCode.BadRequest,
-        "There's nothing to play from this position",
+        t("engine.playback.nothingToPlay"),
       );
     }
     throw startFailedError();
@@ -678,7 +682,7 @@ function getSession(id: string): Session {
   if (!session) {
     throw new AppError(
       ErrorCode.NotFound,
-      "This playback session doesn't exist",
+      t("engine.playback.sessionNotFound"),
     );
   }
   return session;
@@ -748,11 +752,7 @@ async function createSession(
 ): Promise<Playback> {
   // A player shows one video: what it started before is over (a seek, a
   // track change, an earlier start nobody waits for anymore).
-  await stopPlayer(
-    request.playerId,
-    new AppError(ErrorCode.Conflict, SUPERSEDED_MESSAGE),
-    pending,
-  );
+  await stopPlayer(request.playerId, supersededError(), pending);
   if (request.replaces) await stopSession(request.replaces);
   throwIfCancelled(null, signal);
 
@@ -767,7 +767,7 @@ async function createSession(
 
   const video = media.video;
   if (!video)
-    throw new AppError(ErrorCode.BadRequest, "This file has no video");
+    throw new AppError(ErrorCode.BadRequest, t("engine.errors.noVideo"));
   const decision = decide({
     media,
     fileName: file.name,
@@ -795,7 +795,7 @@ async function createSession(
   ) {
     throw new AppError(
       ErrorCode.ServiceUnavailable,
-      "Too many videos are being converted right now",
+      t("engine.playback.tooManyTranscodes"),
     );
   }
 
@@ -881,8 +881,8 @@ async function createSession(
     videoIndex,
     audioIndex: decision.audioTrack,
     audioCodec:
-      media.audioTracks.find((t) => t.index === decision.audioTrack)?.codec ??
-      null,
+      media.audioTracks.find((track) => track.index === decision.audioTrack)
+        ?.codec ?? null,
     audioCopy: decision.audioCopy,
     audioStart: null,
     video:
@@ -1028,10 +1028,7 @@ export const playbackService = {
    * Unknown players are fine (nothing to do).
    */
   stopPlayer(playerId: string): Promise<void> {
-    return stopPlayer(
-      playerId,
-      new AppError(ErrorCode.NotFound, STOPPED_MESSAGE),
-    );
+    return stopPlayer(playerId, stoppedError());
   },
 
   /**
@@ -1040,13 +1037,13 @@ export const playbackService = {
    */
   hlsFile(id: string, file: string) {
     if (!HLS_FILE_PATTERN.test(file)) {
-      throw new AppError(ErrorCode.NotFound, "No such file");
+      throw new AppError(ErrorCode.NotFound, t("engine.errors.noSuchFile"));
     }
     const session = getSession(id);
     if (!session.dir) {
       throw new AppError(
         ErrorCode.NotFound,
-        "Direct playback has no HLS files",
+        t("engine.playback.noHlsForDirect"),
       );
     }
     markSeen(session);
@@ -1094,10 +1091,7 @@ export const playbackService = {
   ): Promise<SubtitleCuesResponse> {
     const session = getSession(id);
     if (!session.dir || !session.subtitleStreams.includes(n)) {
-      throw new AppError(
-        ErrorCode.NotFound,
-        "This session has no cues for that subtitle track",
-      );
+      throw new AppError(ErrorCode.NotFound, t("engine.playback.noCues"));
     }
     markSeen(session);
     await refreshProduced(session);
@@ -1147,7 +1141,7 @@ export const playbackService = {
 
   /** Stops every session and start (tests). */
   async stopAll() {
-    const reason = new AppError(ErrorCode.NotFound, STOPPED_MESSAGE);
+    const reason = stoppedError();
     for (const pending of pendingStarts) pending.abort.abort(reason);
     await Promise.all([...sessions.keys()].map((id) => stopSession(id)));
   },
@@ -1163,7 +1157,7 @@ export const playbackService = {
     throttleTimer = null;
     unsubscribeRemovals?.();
     unsubscribeRemovals = null;
-    const reason = new AppError(ErrorCode.NotFound, STOPPED_MESSAGE);
+    const reason = stoppedError();
     for (const pending of pendingStarts) pending.abort.abort(reason);
     await Promise.all(
       [...sessions.keys()].map((id) => stopSession(id, SHUTDOWN_GRACE_MS)),

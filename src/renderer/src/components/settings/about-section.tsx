@@ -20,6 +20,7 @@ import {
 } from "@/components/updates/update-status";
 import { useNow } from "@/hooks/use-now";
 import { formatRelativeTime } from "@/lib/format";
+import { type T, useT } from "@/lib/i18n";
 import { peopleText } from "@/lib/people-text";
 import { runAction, settingsApi } from "@/lib/settings";
 
@@ -58,6 +59,7 @@ function UpdatesRow({
   autoCheck: boolean;
   onError: (message: string | null) => void;
 }) {
+  const t = useT();
   const version = useAppVersion();
   const status = useUpdateStatus();
   // "Checked 5 minutes ago" moves on while the section is open.
@@ -97,31 +99,39 @@ function UpdatesRow({
     </Button>
   );
 
-  const { text, action } = describeUpdates(status, now, autoCheck, {
-    check,
-    download: () => openReleasePage("Download", <Download />),
-    releases: () => openReleasePage("Releases", <ExternalLink />),
-    restart: () => (
-      <Button
-        size="sm"
-        variant="outline"
-        loading={restarting}
-        onClick={() => {
-          setRestarting(true);
-          // Streamy quits and the new version opens.
-          void runAction(() => window.streamy.updates.install()).then(
-            (message) => {
-              if (message) setRestarting(false);
-              onError(message);
-            },
-          );
-        }}
-      >
-        {!restarting && <RotateCw />}
-        Restart to update
-      </Button>
-    ),
-  });
+  const { text, action } = describeUpdates(
+    status,
+    now,
+    autoCheck,
+    {
+      check,
+      download: () =>
+        openReleasePage(t("settings.about.download"), <Download />),
+      releases: () =>
+        openReleasePage(t("settings.about.releases"), <ExternalLink />),
+      restart: () => (
+        <Button
+          size="sm"
+          variant="outline"
+          loading={restarting}
+          onClick={() => {
+            setRestarting(true);
+            // Streamy quits and the new version opens.
+            void runAction(() => window.streamy.updates.install()).then(
+              (message) => {
+                if (message) setRestarting(false);
+                onError(message);
+              },
+            );
+          }}
+        >
+          {!restarting && <RotateCw />}
+          {t("settings.about.restartToUpdate")}
+        </Button>
+      ),
+    },
+    t,
+  );
 
   return (
     <SettingRow
@@ -149,13 +159,14 @@ function describeUpdates(
   now: number,
   autoCheck: boolean,
   buttons: UpdateButtons,
+  t: T,
 ): { text: string | null; action: ReactNode } {
   switch (status?.state) {
     case undefined:
       return { text: null, action: null };
     case "unsupported":
       return {
-        text: "This copy of Streamy doesn't update itself. New versions are on GitHub.",
+        text: t("settings.about.unsupported"),
         action: buttons.releases(),
       };
     case "idle": {
@@ -163,40 +174,48 @@ function describeUpdates(
         status.checkedAt && formatRelativeTime(status.checkedAt, now);
       return {
         text: checked
-          ? `Up to date. Checked ${checked}.`
+          ? t("settings.about.upToDate", { checked })
           : autoCheck
-            ? "Streamy checks for updates by itself."
-            : "Automatic checks are off.",
-        action: buttons.check("Check for updates"),
+            ? t("settings.about.checksByItself")
+            : t("settings.about.checksOff"),
+        action: buttons.check(t("settings.about.checkForUpdates")),
       };
     }
     case "checking":
       return {
-        text: "Checking for updates…",
-        action: buttons.check("Check for updates"),
+        text: t("settings.about.checking"),
+        action: buttons.check(t("settings.about.checkForUpdates")),
       };
     case "available":
       return status.canInstall
-        ? { text: `Downloading version ${status.version}…`, action: null }
+        ? {
+            text: t("settings.about.downloading", {
+              version: status.version,
+            }),
+            action: null,
+          }
         : {
-            text: `Version ${status.version} is available.`,
+            text: t("settings.about.available", { version: status.version }),
             action: buttons.download(),
           };
     case "downloading":
       return {
-        text: `Downloading version ${status.version}… ${status.percent}%`,
+        text: t("settings.about.downloadingPercent", {
+          version: status.version,
+          percent: status.percent,
+        }),
         action: null,
       };
     case "ready":
       return {
-        text: `Version ${status.version} is ready. It installs when Streamy restarts.`,
+        text: t("settings.about.ready", { version: status.version }),
         action: buttons.restart(),
       };
     case "error":
       return {
         // From the main process: a sentence, but never trusted blindly.
-        text: peopleText(status.message, "Couldn't check for updates."),
-        action: buttons.check("Try again"),
+        text: peopleText(status.message, t("settings.about.checkFailed")),
+        action: buttons.check(t("common.tryAgain")),
       };
   }
 }
@@ -207,7 +226,7 @@ function describeUpdates(
  */
 const NOTICES_URL = "app://streamy/third-party-notices.txt";
 
-type Notices = { text: string } | { error: string };
+type Notices = { text: string } | { missing: "dev" | "release" };
 
 /** Third-party licences, as shipped with this copy of Streamy. */
 function NoticesDialog({
@@ -217,6 +236,7 @@ function NoticesDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const t = useT();
   const titleId = useId();
   const [notices, setNotices] = useState<Notices | null>(null);
 
@@ -236,11 +256,7 @@ function NoticesDialog({
         (error: unknown) => {
           if (controller.signal.aborted) return;
           console.error("Could not load the licences:", error);
-          setNotices({
-            error: import.meta.env.DEV
-              ? "The licences file is missing. Run `npm run notices` to create it."
-              : "The licences file is missing from this copy of Streamy.",
-          });
+          setNotices({ missing: import.meta.env.DEV ? "dev" : "release" });
         },
       );
     return () => {
@@ -250,7 +266,7 @@ function NoticesDialog({
 
   const close = () => {
     // A failed load is tried again next time.
-    if (notices && "error" in notices) setNotices(null);
+    if (notices && "missing" in notices) setNotices(null);
     onClose();
   };
 
@@ -259,12 +275,12 @@ function NoticesDialog({
       <div className="flex max-h-[85dvh] flex-col">
         <div className="flex items-center justify-between gap-4 border-b border-border py-3 pr-3 pl-6">
           <h2 id={titleId} className="text-lg font-semibold">
-            Third-party licences
+            {t("settings.about.licences.title")}
           </h2>
           <Button
             size="icon-sm"
             variant="ghost"
-            aria-label="Close licences"
+            aria-label={t("settings.about.licences.close")}
             onClick={close}
           >
             <X />
@@ -273,10 +289,19 @@ function NoticesDialog({
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
           {notices === null ? (
             // Only while open: a closed dialog stays in the page.
-            open && <Spinner tone="muted" label="Loading the licences" />
-          ) : "error" in notices ? (
+            open && (
+              <Spinner
+                tone="muted"
+                label={t("settings.about.licences.loading")}
+              />
+            )
+          ) : "missing" in notices ? (
             <p role="alert" className="text-sm text-danger">
-              {notices.error}
+              {t(
+                notices.missing === "dev"
+                  ? "settings.about.licences.missingDev"
+                  : "settings.about.licences.missing",
+              )}
             </p>
           ) : (
             <pre className="font-mono text-xs leading-relaxed break-words whitespace-pre-wrap text-muted-foreground select-text">
@@ -290,6 +315,7 @@ function NoticesDialog({
 }
 
 export function AboutSection({ snapshot }: { snapshot: SettingsSnapshot }) {
+  const t = useT();
   const { checkForUpdates: autoCheck } = snapshot.settings;
   const { electron, chrome, node } = window.streamy.versions;
   const [error, setError] = useState<string | null>(null);
@@ -300,8 +326,8 @@ export function AboutSection({ snapshot }: { snapshot: SettingsSnapshot }) {
       <UpdatesRow autoCheck={autoCheck} onError={setError} />
 
       <SettingRow
-        title="Check for updates automatically"
-        description="Asks GitHub for new versions when Streamy starts and every few hours."
+        title={t("settings.about.autoCheck.title")}
+        description={t("settings.about.autoCheck.description")}
       >
         {({ titleId, descriptionId }) => (
           <Switch
@@ -319,25 +345,29 @@ export function AboutSection({ snapshot }: { snapshot: SettingsSnapshot }) {
       </SettingRow>
 
       <SettingRow
-        title="Third-party licences"
-        description="Streamy is built with software that many people made and share. Here's who, and under which licences."
+        title={t("settings.about.licences.title")}
+        description={t("settings.about.licences.description")}
       >
         <Button
           size="sm"
           variant="outline"
-          aria-label="View third-party licences"
+          aria-label={t("settings.about.licences.viewLabel")}
           onClick={() => {
             setNoticesOpen(true);
           }}
         >
           <FileText />
-          View
+          {t("settings.about.licences.view")}
         </Button>
       </SettingRow>
 
       <SettingRow
-        title="Built with"
-        description={`Electron ${electron} · Chromium ${chrome} · Node ${node}`}
+        title={t("settings.about.builtWith.title")}
+        description={t("settings.about.builtWith.description", {
+          electron,
+          chromium: chrome,
+          node,
+        })}
       >
         {null}
       </SettingRow>

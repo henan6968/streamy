@@ -1,3 +1,4 @@
+import { t } from "../../../../shared/i18n";
 import { CacheDirError } from "../../../cache";
 import { appRoute } from "../../../http/app-route";
 import { AppError, ErrorCode } from "../../../http/errors";
@@ -15,7 +16,7 @@ export const handler = appRoute(async (_ctx, _req, res) => {
   if (!services) {
     throw new AppError(
       ErrorCode.ServiceUnavailable,
-      "The playback engine is starting or stopping. Try again in a moment.",
+      t("engine.errors.engineStarting"),
     );
   }
   try {

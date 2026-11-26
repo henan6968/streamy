@@ -11,7 +11,7 @@ import { engineConfigSource, toEngineConfig } from "./config";
 
 describe("toEngineConfig", () => {
   it("turns settings into what the engine follows", () => {
-    expect(toEngineConfig(DEFAULT_SETTINGS, "/cache")).toEqual({
+    expect(toEngineConfig(DEFAULT_SETTINGS, "/cache", "en")).toEqual({
       cacheDir: "/cache",
       cacheLimitBytes: 20_000_000_000,
       hardwareEncoding: "auto",
@@ -19,6 +19,7 @@ describe("toEngineConfig", () => {
       uploadLimit: null,
       keepSharingMinutes: 10,
       maxConnections: 100,
+      locale: "en",
     } satisfies EngineConfig);
   });
 
@@ -34,6 +35,7 @@ describe("toEngineConfig", () => {
         maxConnections: 25,
       },
       "/cache",
+      "en",
     );
     expect(config).toMatchObject({
       cacheLimitBytes: null,
@@ -62,7 +64,12 @@ describe("engineConfigSource", () => {
   });
 
   const source = () =>
-    engineConfigSource({ store, defaultCacheDir, log: silentLogger() });
+    engineConfigSource({
+      store,
+      defaultCacheDir,
+      log: silentLogger(),
+      locale: () => "en",
+    });
 
   it("creates the default video folder, with its marker", () => {
     expect(source().current().cacheDir).toBe(defaultCacheDir);

@@ -1,9 +1,9 @@
-import { UI_LOCALE } from "@/lib/format";
+import { getLocale, translate } from "../../../shared/i18n";
 
-// Language names for language codes, in the interface's language (English
-// for now, like every other text), using the browser's built-in
-// Intl.DisplayNames (no translation tables to maintain). The engine reports
-// tracks as ISO 639-1 ("en") when it can tell.
+// Language names for language codes, in the interface's language (the one
+// picked in Settings), using the browser's built-in Intl.DisplayNames (no
+// translation tables to maintain). The engine reports tracks as ISO 639-1
+// ("en") when it can tell.
 
 /**
  * Languages offered in Settings → Playback: the ones the engine recognises
@@ -35,7 +35,7 @@ function displayNames(locale: string) {
 
 /**
  * The viewer's own language, e.g. "de-DE": a good guess for which audio or
- * subtitles they want. (Names are still written in English: UI_LOCALE.)
+ * subtitles they want. (Names are written in the interface's language.)
  */
 export function defaultLocale(): string {
   return typeof navigator === "undefined" ? "en" : navigator.language || "en";
@@ -45,8 +45,11 @@ export function defaultLocale(): string {
  * "en" → "English", "pt-BR" → "Brazilian Portuguese", null → "Unknown".
  * Codes the browser can't name (or that aren't valid) come back as they are.
  */
-export function languageName(code: string | null, locale = UI_LOCALE): string {
-  if (!code) return "Unknown";
+export function languageName(
+  code: string | null,
+  locale: string = getLocale(),
+): string {
+  if (!code) return translate(locale, "common.unknown");
   try {
     const name = displayNames(locale)?.of(code);
     // Unknown codes come back unchanged: show them as they are ("qaa").
@@ -77,7 +80,7 @@ export function sameLanguage(a: string | null, b: string | null): boolean {
  */
 export function languageOptions(
   extra: (string | null)[] = [],
-  locale = UI_LOCALE,
+  locale: string = getLocale(),
 ): { code: string; name: string }[] {
   const codes = new Set<string>(COMMON_LANGUAGES);
   for (const code of extra) if (code) codes.add(code);

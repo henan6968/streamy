@@ -43,6 +43,12 @@ export interface EngineConfig {
   keepSharingMinutes: number | null;
   /** Peer connections per torrent. */
   maxConnections: number;
+  /**
+   * The language of the messages the engine sends (errors, the health check,
+   * why a video is converted). Main resolves the setting: the engine only
+   * ever sees a language it has a dictionary for.
+   */
+  locale: "en" | "zh-CN";
 }
 
 export interface EngineInitMessage {

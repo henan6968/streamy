@@ -34,6 +34,7 @@ const CONFIG: EngineConfig = {
   uploadLimit: null,
   keepSharingMinutes: 10,
   maxConnections: 100,
+  locale: "en",
 };
 
 /** A logger whose lines the test can read. */

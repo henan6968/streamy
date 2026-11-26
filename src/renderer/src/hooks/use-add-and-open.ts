@@ -2,6 +2,7 @@ import { createElement, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { type AddTorrentInput, useAddTorrent } from "@/hooks/use-torrents";
 import { ApiRequestError, errorMessage, isForPeople } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import { type TorrentPageState, torrentPath } from "@/lib/routes";
 import { toast } from "@/lib/toast";
 
@@ -29,6 +30,21 @@ export function describeAddError(error: unknown): string {
  * so it stays right even after the page that started an add has gone.
  */
 let currentLocationKey: string | null = null;
+
+/** "Added <name>": the name in <bdi>, so a right-to-left one stays whole. */
+function addedMessage(name: string | null) {
+  if (!name) {
+    return createElement("span", null, t("app.add.addedUnknown"));
+  }
+  const [before = "", after = ""] = t("app.add.added").split("{name}");
+  return createElement(
+    "span",
+    null,
+    before,
+    createElement("bdi", null, name),
+    after,
+  );
+}
 
 /**
  * Adds a torrent and opens its page. `justAdded` lets that page go straight
@@ -59,11 +75,8 @@ export function useAddAndOpen() {
       if (currentLocationKey === null || currentLocationKey === startedAt) {
         open();
       } else {
-        const name = torrent.name
-          ? createElement("bdi", null, torrent.name)
-          : "the torrent";
-        toast.success(createElement("span", null, "Added ", name), {
-          action: { label: "Open", onClick: open },
+        toast.success(addedMessage(torrent.name), {
+          action: { label: t("common.open"), onClick: open },
         });
       }
       return null;

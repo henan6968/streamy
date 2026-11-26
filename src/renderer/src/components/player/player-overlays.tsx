@@ -15,14 +15,16 @@ import { buttonVariants } from "@/components/ui/button-variants";
 import { useNow } from "@/hooks/use-now";
 import { cn } from "@/lib/cn";
 import { formatSwarm } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { peopleText } from "@/lib/people-text";
 
 /** The big white spinner over the video. */
-export function Ring({ label = "Loading" }: { label?: string }) {
+export function Ring({ label }: { label?: string }) {
+  const t = useT();
   return (
     <span
       role="status"
-      aria-label={label}
+      aria-label={label ?? t("common.loading")}
       className="block size-12 animate-spin rounded-full border-[3px] border-white/20 border-t-white"
     />
   );
@@ -44,9 +46,9 @@ export function Center({ children }: { children: ReactNode }) {
  * on disk (after a restart): its file list is known, but nothing plays
  * until that's done. Not "Finding peers": peers aren't the problem.
  */
-export const CHECKING_TITLE = "Checking downloaded data…";
+export const CHECKING_TITLE_KEY = "player.checking.title" as const;
 /** Shown once the check has taken a few seconds. */
-export const CHECKING_DETAIL = "This can take a while for a big torrent";
+export const CHECKING_DETAIL_KEY = "player.checking.detail" as const;
 
 type LoadingProps = {
   phase: EnginePhase;
@@ -83,6 +85,7 @@ function ActiveLoading({
   torrent,
   starting,
 }: LoadingProps & { starting: boolean }) {
+  const t = useT();
   const [since] = useState(() => Date.now());
   const now = useNow(250);
   const seconds = (now - since) / 1000;
@@ -93,23 +96,26 @@ function ActiveLoading({
   const checking =
     (phase === "preparing" || phase === "idle") &&
     torrent?.status === "checking";
-  let title = "Loading…";
-  if (checking) title = CHECKING_TITLE;
+  let title = t("common.loadingNow");
+  if (checking) title = t(CHECKING_TITLE_KEY);
   else if (phase === "preparing" || phase === "idle")
-    title = "Preparing video…";
-  else if (mode === "transcode") title = "Converting video…";
-  else if (phase === "loading" && mode === "remux") title = "Preparing video…";
+    title = t("player.loading.preparing");
+  else if (mode === "transcode") title = t("player.loading.converting");
+  else if (phase === "loading" && mode === "remux")
+    title = t("player.loading.preparing");
 
   const swarm = torrent ? formatSwarm(torrent) : null;
   let detail: string | null = null;
   if (waiting && !starting && seconds >= 15) {
-    detail = swarm ? `Waiting for pieces · ${swarm}` : "Waiting for pieces…";
+    detail = swarm
+      ? t("player.loading.waitingForPieces", { swarm })
+      : t("player.loading.waitingForPiecesAlone");
   } else if (checking && seconds >= 6) {
-    detail = CHECKING_DETAIL;
+    detail = t(CHECKING_DETAIL_KEY);
   } else if (starting && seconds >= 6) {
     detail = swarm
-      ? `This can take a while on a slow torrent · ${swarm}`
-      : "This can take a while on a slow torrent";
+      ? t("player.loading.slowTorrent", { swarm })
+      : t("player.loading.slowTorrentAlone");
   }
 
   return (
@@ -130,26 +136,30 @@ export function ReconnectingOverlay({
 }: {
   status: EngineStatus | null;
 }) {
+  const t = useT();
   const failed = status?.state === "failed";
   return (
     <Center>
-      <Ring label="Reconnecting" />
-      <p className="text-sm font-medium text-white">Reconnecting…</p>
+      <Ring label={t("player.reconnecting.spinner")} />
+      <p className="text-sm font-medium text-white">
+        {t("player.reconnecting.title")}
+      </p>
       <p className="max-w-xs text-xs text-white/70">
         {failed
-          ? "The playback engine keeps stopping. Streamy will try again in a minute."
-          : "The playback engine stopped. The video goes on from here once it's back."}
+          ? t("player.reconnecting.failed")
+          : t("player.reconnecting.message")}
       </p>
     </Center>
   );
 }
 
 export function BigPlayButton({ onPlay }: { onPlay: () => void }) {
+  const t = useT();
   return (
     <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
       <button
         type="button"
-        aria-label="Play"
+        aria-label={t("common.play")}
         onClick={onPlay}
         className="pointer-events-auto flex size-20 items-center justify-center rounded-full bg-black/55 text-white ring-1 ring-white/20 backdrop-blur-sm transition-transform outline-none hover:scale-105 focus-visible:ring-2 focus-visible:ring-white/60"
       >
@@ -210,6 +220,7 @@ export function ErrorOverlay({
   error: EngineError;
   onRetry: () => void;
 }) {
+  const t = useT();
   return (
     <PlayerMessage
       title={error.title}
@@ -219,12 +230,12 @@ export function ErrorOverlay({
         error.kind === "removed" ? (
           <Link to="/" className={buttonVariants({ variant: "primary" })}>
             <Home />
-            Home
+            {t("player.home")}
           </Link>
         ) : (
           <Button onClick={onRetry}>
             <RotateCw />
-            Retry
+            {t("common.retry")}
           </Button>
         )
       }

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { UpdateButton } from "@/components/updates/update-button";
 import { cn } from "@/lib/cn";
 import { useWindowFullScreen } from "@/lib/full-screen";
+import { useT } from "@/lib/i18n";
 import { isMac } from "@/lib/platform";
 import { openSettings } from "@/lib/settings";
 
@@ -23,6 +24,7 @@ export function TitleBar({
   /** Shown on the left, e.g. Back and Forward. Mark it no-drag-region. */
   navigation?: ReactNode;
 }) {
+  const t = useT();
   const fullScreen = useWindowFullScreen();
 
   return (
@@ -55,8 +57,8 @@ export function TitleBar({
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="Settings"
-            title="Settings"
+            aria-label={t("common.settings")}
+            title={t("common.settings")}
             className="no-drag-region"
             onClick={() => {
               openSettings();

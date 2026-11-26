@@ -9,8 +9,10 @@ import { Spinner } from "@/components/ui/spinner";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useLibrary } from "@/hooks/use-library";
 import { errorMessage } from "@/lib/api";
+import { useT } from "@/lib/i18n";
 
 export function HomePage() {
+  const t = useT();
   useDocumentTitle(null);
 
   return (
@@ -18,12 +20,9 @@ export function HomePage() {
       <section className="mx-auto flex w-full max-w-2xl flex-col items-center gap-7 text-center">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-semibold tracking-tight">
-            What do you want to watch?
+            {t("app.home.title")}
           </h1>
-          <p className="text-muted-foreground">
-            Paste a magnet link or open a .torrent file. Streamy starts playing
-            while it downloads.
-          </p>
+          <p className="text-muted-foreground">{t("app.home.subtitle")}</p>
         </div>
         <AddTorrentBox />
       </section>
@@ -35,6 +34,7 @@ export function HomePage() {
 
 /** Continue watching and Recent, or a first-run hint when both are empty. */
 function Library() {
+  const t = useT();
   const library = useLibrary();
 
   if (library.isPending) {
@@ -43,8 +43,8 @@ function Library() {
       <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
         <Spinner size="sm" />
         {library.fetchStatus === "paused"
-          ? "Waiting for the playback engine…"
-          : "Loading your library…"}
+          ? t("app.engine.waiting")
+          : t("app.home.loadingLibrary")}
       </div>
     );
   }
@@ -52,7 +52,7 @@ function Library() {
   // No data after loading = it failed (a failed refresh keeps the old data).
   if (library.data === undefined) {
     return (
-      <Alert tone="danger" title="Couldn't load your library">
+      <Alert tone="danger" title={t("app.home.libraryFailed")}>
         <div className="flex flex-col items-start gap-2">
           {errorMessage(library.error)}
           <Button
@@ -61,7 +61,7 @@ function Library() {
             loading={library.isFetching}
             onClick={() => void library.refetch()}
           >
-            Try again
+            {t("common.tryAgain")}
           </Button>
         </div>
       </Alert>

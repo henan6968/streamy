@@ -1,5 +1,6 @@
 import { isAbsolute } from "node:path";
 import type { TorrentInfo } from "webtorrent";
+import { t } from "../../shared/i18n";
 import { MAX_TORRENT_FILES } from "../config";
 
 /*
@@ -18,6 +19,7 @@ import { MAX_TORRENT_FILES } from "../config";
  * drive used from Windows, and one rule set is easier to trust.
  */
 
+/** The English text (tests import it); people read engine.errors.unsafeFileNames. */
 export const UNSAFE_NAMES_MESSAGE =
   "This torrent has file names Streamy can't save safely.";
 
@@ -125,13 +127,16 @@ export function torrentContentsProblem(contents: {
 }): string | null {
   const { files, info } = contents;
   if (files.length > MAX_TORRENT_FILES) {
-    return `This torrent has too many files (${files.length.toLocaleString("en-US")}). Streamy opens torrents with up to ${MAX_TORRENT_FILES.toLocaleString("en-US")} files.`;
+    return t("engine.errors.tooManyFiles", {
+      count: files.length.toLocaleString("en-US"),
+      max: MAX_TORRENT_FILES.toLocaleString("en-US"),
+    });
   }
   if (
     [...files, ...rawPaths(info)].some(isUnsafePath) ||
     hasCollidingPaths(files)
   ) {
-    return UNSAFE_NAMES_MESSAGE;
+    return t("engine.errors.unsafeFileNames");
   }
   return null;
 }

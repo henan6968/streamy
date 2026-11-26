@@ -2,6 +2,7 @@ import { type KeyboardEvent, type PointerEvent, useRef, useState } from "react";
 import type { TimeRange } from "@/components/player/playback-logic";
 import { cn } from "@/lib/cn";
 import { formatTime } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
 const KEY_STEPS: Record<string, number> = {
   ArrowLeft: -5,
@@ -38,6 +39,7 @@ export function Scrubber({
   produced: TimeRange | null;
   onSeek: (time: number) => void;
 }) {
+  const t = useT();
   const trackRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<number | null>(null);
   const [drag, setDrag] = useState<number | null>(null);
@@ -91,11 +93,14 @@ export function Scrubber({
     <div
       role="slider"
       tabIndex={0}
-      aria-label="Seek"
+      aria-label={t("player.scrubber.seek")}
       aria-valuemin={0}
       aria-valuemax={Math.round(duration)}
       aria-valuenow={Math.round(shown)}
-      aria-valuetext={`${formatTime(shown)} of ${formatTime(duration)}`}
+      aria-valuetext={t("player.scrubber.value", {
+        time: formatTime(shown),
+        duration: formatTime(duration),
+      })}
       onKeyDown={onKeyDown}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

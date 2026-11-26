@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useUpdateStatus } from "@/components/updates/update-status";
 import { announce } from "@/lib/announcer";
+import { type T, useT } from "@/lib/i18n";
 import { runAction } from "@/lib/settings";
 import { toast } from "@/lib/toast";
 
@@ -28,26 +29,27 @@ function updateAction(status: UpdateStatus | null): UpdateAction | null {
   return null;
 }
 
-function labelFor(action: UpdateAction): string {
+function labelFor(action: UpdateAction, t: T): string {
   return action.kind === "restart"
-    ? `Restart to update to Streamy ${action.version}`
-    : `Download Streamy ${action.version}`;
+    ? t("app.update.restart", { version: action.version })
+    : t("app.update.download", { version: action.version });
 }
 
 export function UpdateButton() {
+  const t = useT();
   const action = updateAction(useUpdateStatus());
   const [restarting, setRestarting] = useState(false);
-  const label = action ? labelFor(action) : null;
+  const label = action ? labelFor(action, t) : null;
 
   // The button appears without moving focus, so screen readers hear it once
   // through the app's live region.
   useEffect(() => {
     if (!label) return;
-    announce("update", `${label}: the button is next to Settings.`);
+    announce("update", t("app.update.announcement", { label }));
     return () => {
       announce("update", null);
     };
-  }, [label]);
+  }, [label, t]);
 
   if (!action || !label) return null;
 
@@ -58,7 +60,7 @@ export function UpdateButton() {
     void runAction(() => window.streamy.updates.install()).then((message) => {
       if (message) {
         setRestarting(false);
-        toast.error("Couldn't restart to update", { description: message });
+        toast.error(t("app.update.restartFailed"), { description: message });
       }
     });
   };
@@ -67,7 +69,7 @@ export function UpdateButton() {
     void runAction(() => window.streamy.updates.openReleasePage()).then(
       (message) => {
         if (message) {
-          toast.error("Couldn't open the download page", {
+          toast.error(t("app.update.downloadPageFailed"), {
             description: message,
           });
         }

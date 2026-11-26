@@ -1,6 +1,10 @@
 import { X } from "lucide-react";
 import { type RefObject, useEffect, useState } from "react";
-import type { MediaInfo, TorrentSummary } from "../../../../shared/engine-api";
+import type {
+  MediaInfo,
+  PlaybackMode,
+  TorrentSummary,
+} from "../../../../shared/engine-api";
 import type { EngineSnapshot } from "@/components/player/playback-engine";
 import {
   bufferedAhead,
@@ -14,11 +18,17 @@ import {
   formatSpeed,
   formatTime,
 } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
 function seconds(value: number | null | undefined) {
   return typeof value === "number" && Number.isFinite(value)
     ? `${value.toFixed(1)} s`
     : "—";
+}
+
+/** The message for a session's mode ("direct", "remux", "transcode"). */
+function modeKey(mode: PlaybackMode): `player.stats.mode.${PlaybackMode}` {
+  return `player.stats.mode.${mode}`;
 }
 
 function sourceLine(media: MediaInfo | null, audioIndex: number | null) {
@@ -109,72 +119,94 @@ export function StatsPanel({
   getTime: () => number;
   onClose: () => void;
 }) {
+  const t = useT();
   const { session, status, producedUntil } = snapshot;
   const offset = session?.offset ?? 0;
   const sample = useVideoSample(videoRef, getTime, offset);
   const player =
     session?.mode === "direct"
-      ? "<video> (direct)"
+      ? t("player.stats.playerDirect")
       : (snapshot.hlsPlayer ?? "—");
 
   const rows: [string, string][] = [
-    ["Mode", session ? `${session.mode} — ${session.reason}` : "—"],
     [
-      "Session",
+      t("player.stats.mode"),
+      session
+        ? t("player.stats.modeValue", {
+            mode: t(modeKey(session.mode)),
+            reason: session.reason,
+          })
+        : "—",
+    ],
+    [
+      t("player.stats.session"),
       session?.id
         ? `${session.id.slice(0, 8)} · ${status?.state ?? "…"}${status?.error ? ` (${status.error})` : ""}`
         : "—",
     ],
-    ["Source", sourceLine(media, snapshot.selection.audioTrack)],
     [
-      "Output",
+      t("player.stats.source"),
+      sourceLine(media, snapshot.selection.audioTrack),
+    ],
+    [
+      t("player.stats.output"),
       session && session.output.width > 0
         ? `${session.output.videoCodec} / ${session.output.audioCodec} · ${session.output.width}×${session.output.height}`
         : sample?.width
           ? `${sample.width}×${sample.height}`
           : "—",
     ],
-    ["Encoder", session ? encoderLabel(session.encoder) : "—"],
-    ["Player", player],
-    ["Container", media ? media.container : "—"],
+    [t("player.stats.encoder"), session ? encoderLabel(session.encoder) : "—"],
+    [t("player.stats.player"), player],
+    [t("player.stats.container"), media ? media.container : "—"],
     [
-      "Bitrate",
+      t("player.stats.bitrate"),
       media?.bitRate ? `${(media.bitRate / 1_000_000).toFixed(1)} Mb/s` : "—",
     ],
-    ["Offset", session ? seconds(offset) : "—"],
+    [t("player.stats.offset"), session ? seconds(offset) : "—"],
     [
-      "Produced",
+      t("player.stats.produced"),
       producedUntil !== null
-        ? `until ${formatTime(producedUntil)} (${seconds(producedUntil)})`
+        ? t("player.stats.producedUntil", {
+            time: formatTime(producedUntil),
+            seconds: seconds(producedUntil),
+          })
         : "—",
     ],
     [
-      "Position",
+      t("player.stats.position"),
       sample
-        ? `${formatTime(sample.time)} (${seconds(sample.time)}) · video ${seconds(sample.videoTime)}`
+        ? t("player.stats.positionValue", {
+            time: formatTime(sample.time),
+            seconds: seconds(sample.time),
+            video: seconds(sample.videoTime),
+          })
         : "—",
     ],
-    ["Buffer ahead", seconds(sample?.ahead)],
+    [t("player.stats.bufferAhead"), seconds(sample?.ahead)],
     [
-      "Frames",
+      t("player.stats.frames"),
       sample?.frames
-        ? `${sample.frames.dropped} dropped of ${sample.frames.total}`
+        ? t("player.stats.framesValue", {
+            dropped: sample.frames.dropped,
+            total: sample.frames.total,
+          })
         : "—",
     ],
     [
-      "Torrent",
+      t("player.stats.torrent"),
       torrent
         ? `${formatPeers(torrent.peers)} · ↓ ${formatSpeed(torrent.downloadSpeed)} · ↑ ${formatSpeed(torrent.uploadSpeed)} · ${formatPercent(torrent.progress)}`
         : "—",
     ],
-    ["Forced mode", snapshot.forceMode ?? "no"],
+    [t("player.stats.forcedMode"), snapshot.forceMode ?? t("player.stats.no")],
   ];
 
   return (
     <div className="absolute top-16 left-4 z-20 w-[min(26rem,calc(100vw-2rem))] rounded-lg bg-black/80 p-3 font-mono text-[11px] leading-5 text-white/90 shadow-xl backdrop-blur-sm select-text">
       <button
         type="button"
-        aria-label="Close stats"
+        aria-label={t("player.stats.close")}
         onClick={onClose}
         className="absolute top-1.5 right-1.5 flex size-6 items-center justify-center rounded text-white/60 outline-none hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white/40"
       >

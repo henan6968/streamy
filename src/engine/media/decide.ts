@@ -5,6 +5,7 @@ import type {
   PlaybackMode,
   Quality,
 } from "../../shared/engine-api";
+import { t } from "../../shared/i18n";
 import { AppError, ErrorCode } from "../http/errors";
 
 /*
@@ -135,10 +136,18 @@ function canDecodeVideo(
 
 function cantDecodeReason(video: NonNullable<MediaInfo["video"]>) {
   if (video.codec === "h264" && video.bitDepth > 8) {
-    return `This computer can't decode ${video.bitDepth}-bit H.264, converting to 8-bit H.264`;
+    return t("engine.playback.reason.cantDecode", {
+      depth: `${video.bitDepth}-bit `,
+      codec: "H.264",
+      target: "8-bit H.264",
+    });
   }
   const depth = video.bitDepth > 8 ? `${video.bitDepth}-bit ` : "";
-  return `This computer can't decode ${depth}${videoName(video.codec)}, converting to H.264`;
+  return t("engine.playback.reason.cantDecode", {
+    depth,
+    codec: videoName(video.codec),
+    target: "H.264",
+  });
 }
 
 function evenRound(value: number) {
@@ -147,20 +156,20 @@ function evenRound(value: number) {
 
 function parseBurnSubtitle(media: MediaInfo, id: string | null): number | null {
   if (id === null) return null;
-  const track = media.subtitleTracks.find((t) => t.id === id);
+  const track = media.subtitleTracks.find((track) => track.id === id);
   const match = /^embedded:(\d+)$/.exec(id);
   if (!track || !match) {
     throw new AppError(
       ErrorCode.BadRequest,
       track
-        ? "Only picture subtitles inside the video can be burned in"
-        : "This subtitle track doesn't exist",
+        ? t("engine.errors.pictureSubtitlesOnly")
+        : t("engine.errors.noSuchSubtitle"),
     );
   }
   if (track.isText) {
     throw new AppError(
       ErrorCode.BadRequest,
-      "Text subtitles are shown by the player, only picture subtitles can be burned in",
+      t("engine.errors.textSubtitlesNotBurnable"),
     );
   }
   return Number(match[1]);
@@ -170,19 +179,23 @@ export function decide(input: DecideInput): Decision {
   const { media, capabilities: caps } = input;
   const video = media.video;
   if (!video)
-    throw new AppError(ErrorCode.BadRequest, "This file has no video");
+    throw new AppError(ErrorCode.BadRequest, t("engine.errors.noVideo"));
 
   // The audio that will play: the one asked for, else the file's default.
   if (
     input.audioTrack !== null &&
-    !media.audioTracks.some((t) => t.index === input.audioTrack)
+    !media.audioTracks.some((track) => track.index === input.audioTrack)
   ) {
-    throw new AppError(ErrorCode.BadRequest, "This audio track doesn't exist");
+    throw new AppError(
+      ErrorCode.BadRequest,
+      t("engine.errors.noSuchAudioTrack"),
+    );
   }
   const audio =
     input.audioTrack !== null
-      ? media.audioTracks.find((t) => t.index === input.audioTrack)
-      : (media.audioTracks.find((t) => t.isDefault) ?? media.audioTracks[0]);
+      ? media.audioTracks.find((track) => track.index === input.audioTrack)
+      : (media.audioTracks.find((track) => track.isDefault) ??
+        media.audioTracks[0]);
   const audioCodec = audio?.codec ?? null;
 
   const burnSubtitle = parseBurnSubtitle(media, input.burnSubtitle);
@@ -191,7 +204,7 @@ export function decide(input: DecideInput): Decision {
   const container = containerOf(media, extension, audioCodec);
   const containerName =
     container === "other"
-      ? extension.toUpperCase() || "This format"
+      ? extension.toUpperCase() || t("engine.playback.reason.thisFormat")
       : container.toUpperCase();
 
   const videoOk = canDecodeVideo(video, caps);
@@ -211,14 +224,16 @@ export function decide(input: DecideInput): Decision {
   const transcodeReasons: string[] = [];
   if (!videoOk) transcodeReasons.push(cantDecodeReason(video));
   if (burnSubtitle !== null)
-    transcodeReasons.push("Burning in picture subtitles");
+    transcodeReasons.push(t("engine.playback.reason.burningSubtitles"));
   if (lowerQuality) {
-    transcodeReasons.push(`Lower quality (${input.quality}) requested`);
+    transcodeReasons.push(
+      t("engine.playback.reason.lowerQuality", { quality: input.quality }),
+    );
   }
 
   // Why it can't play as it is (in order of what to fix first).
   const hasEmbeddedText = media.subtitleTracks.some(
-    (t) => t.source === "embedded" && t.isText,
+    (track) => track.source === "embedded" && track.isText,
   );
   const directAudio =
     audioCodec === null ||
@@ -233,37 +248,45 @@ export function decide(input: DecideInput): Decision {
   let notDirect: string | null = null;
   let audioExplained = false;
   if (container !== "mp4" && container !== "webm") {
-    notDirect = `${containerName} isn't playable directly, repackaging it (no quality loss)`;
+    notDirect = t("engine.playback.reason.containerNotDirect", {
+      container: containerName,
+    });
   } else if (!caps.direct[container]) {
-    notDirect = `Streamy can't play ${containerName} files directly, repackaging it (no quality loss)`;
+    notDirect = t("engine.playback.reason.containerNotSupported", {
+      container: containerName,
+    });
   } else if (!directAudio) {
-    notDirect = `Streamy can't play ${audioName(audioCodec)} audio, converting the audio (video untouched)`;
+    notDirect = t("engine.playback.reason.audioNotSupported", {
+      codec: audioName(audioCodec),
+    });
     audioExplained = true;
   } else if (audio && audio.index !== 0) {
-    notDirect =
-      "Another audio track was chosen, repackaging it (no quality loss)";
+    notDirect = t("engine.playback.reason.otherAudioTrack");
   } else if (input.embeddedSubtitles && hasEmbeddedText) {
-    notDirect = "Repackaging to read the embedded subtitles (no quality loss)";
+    notDirect = t("engine.playback.reason.embeddedSubtitles");
   }
+
+  // Between two reasons: ". " (English), "。" (Chinese).
+  const separator = t("engine.playback.reason.separator");
 
   let mode: PlaybackMode;
   let reason: string;
   if (needVideoTranscode) {
     // Even a forced direct/remux can't copy video the browser can't use.
     mode = "transcode";
-    reason = transcodeReasons.join(". ");
+    reason = transcodeReasons.join(separator);
   } else if (input.forceMode === "transcode") {
     mode = "transcode";
-    reason = "Converting the video to H.264 as asked";
+    reason = t("engine.playback.reason.transcodeForced");
   } else if (input.forceMode === "remux") {
     mode = "remux";
-    reason = "Repackaging as asked (no quality loss)";
+    reason = t("engine.playback.reason.remuxForced");
   } else if (input.forceMode === "direct" || notDirect === null) {
     mode = "direct";
     reason =
       input.forceMode === "direct"
-        ? "Playing the file directly as asked"
-        : "Streamy can play the file as it is";
+        ? t("engine.playback.reason.directForced")
+        : t("engine.playback.reason.direct");
   } else {
     mode = "remux";
     reason = notDirect;
@@ -304,7 +327,11 @@ export function decide(input: DecideInput): Decision {
     output.audioCodec !== audioCodec &&
     !(audioExplained && remuxReasonShown)
   ) {
-    reason += `. ${audioName(audioCodec)} audio is converted to AAC`;
+    reason +=
+      separator +
+      t("engine.playback.reason.audioConverted", {
+        codec: audioName(audioCodec),
+      });
   }
 
   return {

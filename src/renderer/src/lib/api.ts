@@ -18,8 +18,9 @@ import {
   type TorrentDetail,
   type ValidationIssue,
 } from "../../../shared/engine-api";
+import { t } from "../../../shared/i18n";
 import { isEngineRunning } from "@/lib/engine-status";
-import { looksTechnical, SOMETHING_WENT_WRONG } from "@/lib/people-text";
+import { looksTechnical } from "@/lib/people-text";
 
 // The UI's only way to the playback engine. Every call is a fetch() to
 // app://streamy/api/v1/…; the main process forwards it to the engine.
@@ -65,11 +66,7 @@ export class ApiRequestError extends Error {
  */
 export class EngineUnavailableError extends ApiRequestError {
   constructor() {
-    super(
-      503,
-      ErrorCode.ServiceUnavailable,
-      "The playback engine isn't running right now. Streamy is starting it again.",
-    );
+    super(503, ErrorCode.ServiceUnavailable, t("app.error.engineUnavailable"));
     this.name = "EngineUnavailableError";
   }
 }
@@ -128,14 +125,14 @@ export function errorMessage(error: unknown): string {
     }
     if (error.code === ErrorCode.Internal) {
       logDetails(error);
-      return "The playback engine ran into a problem. Please try again.";
+      return t("app.error.internal");
     }
     if (error.code !== "UNKNOWN" && isForPeople(error.message)) {
       return error.message;
     }
   }
   logDetails(error);
-  return SOMETHING_WENT_WRONG;
+  return t("common.somethingWentWrong");
 }
 
 type ApiInit = Omit<RequestInit, "body"> & {
@@ -164,11 +161,7 @@ export async function apiFetch<T>(path: string, init: ApiInit = {}) {
   } catch (error) {
     // Aborts are on purpose (e.g. leaving the page); let callers tell them apart.
     if (isAbortError(error)) throw error;
-    throw new ApiRequestError(
-      0,
-      "NETWORK",
-      "Can't reach the playback engine. Try again in a moment.",
-    );
+    throw new ApiRequestError(0, "NETWORK", t("app.error.network"));
   }
 
   if (!response.ok) throw await toApiError(response);
@@ -189,7 +182,7 @@ async function toApiError(response: Response) {
     return new ApiRequestError(
       response.status,
       "NETWORK",
-      "The playback engine isn't responding. Try again in a moment.",
+      t("app.error.notResponding"),
     );
   }
   return new ApiRequestError(

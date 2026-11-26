@@ -3,6 +3,7 @@ import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { engineUrl } from "@/lib/api";
 import { formatTime } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
 /**
  * Asked before playback starts when there's a saved position: carry on, or
@@ -26,6 +27,7 @@ export function ResumePrompt({
   onResume: () => void;
   onStartOver: () => void;
 }) {
+  const t = useT();
   const headingId = useId();
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
   const percent =
@@ -53,7 +55,7 @@ export function ResumePrompt({
       >
         <div className="flex w-full flex-col gap-1.5">
           <p className="text-xs font-medium tracking-wide text-white/60 uppercase">
-            Continue watching
+            {t("player.resume.continueWatching")}
           </p>
           <h2
             id={headingId}
@@ -68,7 +70,7 @@ export function ResumePrompt({
           <div className="flex w-full flex-col gap-1.5">
             <div
               role="progressbar"
-              aria-label="Watched so far"
+              aria-label={t("player.resume.watchedSoFar")}
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={Math.floor(percent)}
@@ -80,7 +82,10 @@ export function ResumePrompt({
               />
             </div>
             <p className="font-mono text-xs text-white/60 tabular-nums">
-              {formatTime(position)} of {formatTime(duration)}
+              {t("player.resume.positionOf", {
+                position: formatTime(position),
+                duration: formatTime(duration),
+              })}
             </p>
           </div>
         )}
@@ -92,11 +97,11 @@ export function ResumePrompt({
             onClick={onResume}
           >
             <Play className="fill-current" aria-hidden />
-            Resume at {formatTime(position)}
+            {t("player.resume.resumeAt", { time: formatTime(position) })}
           </Button>
           <Button variant="outline" onClick={onStartOver}>
             <RotateCcw aria-hidden />
-            Start over
+            {t("player.resume.startOver")}
           </Button>
         </div>
       </section>

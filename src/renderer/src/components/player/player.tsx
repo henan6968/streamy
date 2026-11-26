@@ -75,6 +75,7 @@ import { ensureTorrentOpen } from "@/hooks/use-media";
 import { browserCapabilities } from "@/lib/capabilities";
 import { cn } from "@/lib/cn";
 import { setWindowFullScreen, useWindowFullScreen } from "@/lib/full-screen";
+import { useT } from "@/lib/i18n";
 import { defaultLocale } from "@/lib/languages";
 import { watchPath } from "@/lib/routes";
 import { settingsApi, useSettings } from "@/lib/settings";
@@ -165,6 +166,7 @@ function setUp(
 
 export function Player(props: PlayerProps) {
   const { infoHash, fileIndex, media, torrent } = props;
+  const t = useT();
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const settingsButtonRef = useRef<HTMLButtonElement>(null);
@@ -325,8 +327,10 @@ export function Player(props: PlayerProps) {
     showFlash(
       <>
         {seconds < 0 ? <Rewind /> : <FastForward />}
-        {seconds < 0 ? "−" : "+"}
-        {Math.abs(seconds)} s
+        {t("player.flash.seek", {
+          sign: seconds < 0 ? "−" : "+",
+          seconds: Math.abs(seconds),
+        })}
       </>,
     );
   };
@@ -351,11 +355,14 @@ export function Player(props: PlayerProps) {
     showFlash(
       muted ? (
         <>
-          <VolumeX /> Muted
+          <VolumeX /> {t("player.flash.muted")}
         </>
       ) : (
         <>
-          <Volume2 /> {Math.round(element.volume * 100)}%
+          <Volume2 />{" "}
+          {t("player.flash.volume", {
+            percent: Math.round(element.volume * 100),
+          })}
         </>
       ),
     );
@@ -416,7 +423,7 @@ export function Player(props: PlayerProps) {
       chooseSubtitle(null);
       showFlash(
         <>
-          <CaptionsOff /> Subtitles off
+          <CaptionsOff /> {t("player.flash.subtitlesOff")}
         </>,
       );
       return;
@@ -438,7 +445,7 @@ export function Player(props: PlayerProps) {
       null;
     const track = subtitleTracks.find((item) => item.id === id);
     if (!id || !track) {
-      showFlash("No subtitles");
+      showFlash(t("player.flash.noSubtitles"));
       return;
     }
     chooseSubtitle(id);
@@ -730,6 +737,7 @@ function TopBar({
   showBack: boolean;
   visible: boolean;
 }) {
+  const t = useT();
   const goBack = useGoBack();
   return (
     <div
@@ -742,8 +750,8 @@ function TopBar({
       {showBack && (
         <button
           type="button"
-          aria-label="Back"
-          title="Back"
+          aria-label={t("common.back")}
+          title={t("common.back")}
           className={controlButtonClass}
           onClick={goBack}
         >
@@ -767,7 +775,7 @@ function TopBar({
           title={next.name}
           className="flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-white/10 px-3 text-sm font-medium text-white backdrop-blur-sm transition-colors outline-none hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white/40 [&_svg]:size-4"
         >
-          Next episode
+          {t("player.nextEpisode")}
           <SkipForward />
         </Link>
       )}

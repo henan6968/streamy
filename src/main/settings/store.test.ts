@@ -44,6 +44,7 @@ describe("parseSettingsFile", () => {
   it("keeps valid values", () => {
     const settings = {
       theme: "dark",
+      language: "zh-CN",
       uiScale: 1.25,
       cacheDir: "/Volumes/Movies",
       cacheLimitGb: null,

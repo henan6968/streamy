@@ -9,11 +9,13 @@ import { useRemoveProgress } from "@/hooks/use-library";
 import { errorMessage } from "@/lib/api";
 import { readableName } from "@/lib/file-names";
 import { formatTimeLeft } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { torrentPath, type WatchPageState, watchPath } from "@/lib/routes";
 import { toast } from "@/lib/toast";
 
 /** Videos started but not finished, newest first. Hidden when empty. */
 export function ContinueWatching({ items }: { items: ContinueWatchingItem[] }) {
+  const t = useT();
   if (items.length === 0) return null;
 
   return (
@@ -22,7 +24,7 @@ export function ContinueWatching({ items }: { items: ContinueWatchingItem[] }) {
       className="flex flex-col gap-3"
     >
       <h2 id="continue-watching" className="text-sm font-medium">
-        Continue watching
+        {t("app.home.continueWatching")}
       </h2>
       <ul className="grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-4">
         {items.map((item) => (
@@ -37,6 +39,7 @@ export function ContinueWatching({ items }: { items: ContinueWatchingItem[] }) {
 }
 
 function ContinueCard({ item }: { item: ContinueWatchingItem }) {
+  const t = useT();
   const navigate = useNavigate();
   const remove = useRemoveProgress();
   const detailsId = useId();
@@ -95,7 +98,7 @@ function ContinueCard({ item }: { item: ContinueWatchingItem }) {
         </span>
       </div>
       <Menu
-        label={`More for ${title}`}
+        label={t("app.home.moreFor", { name: title })}
         className="absolute right-2 bottom-2.5 z-10"
         triggerClassName="size-7 text-muted-foreground hover:bg-accent hover:text-foreground aria-expanded:bg-accent [&_svg]:size-4"
         trigger={<Ellipsis aria-hidden />}
@@ -106,7 +109,7 @@ function ContinueCard({ item }: { item: ContinueWatchingItem }) {
           }}
         >
           <ListVideo aria-hidden />
-          Show all files
+          {t("app.home.showAllFiles")}
         </MenuItem>
         <MenuItem
           tone="danger"
@@ -116,7 +119,7 @@ function ContinueCard({ item }: { item: ContinueWatchingItem }) {
               { infoHash: item.infoHash, fileIndex: item.fileIndex },
               {
                 onError: (error) => {
-                  toast.error("Couldn't remove it", {
+                  toast.error(t("app.home.removeFailed"), {
                     description: errorMessage(error),
                   });
                 },
@@ -125,7 +128,7 @@ function ContinueCard({ item }: { item: ContinueWatchingItem }) {
           }}
         >
           <X aria-hidden />
-          Remove from Continue watching
+          {t("app.home.removeFromContinue")}
         </MenuItem>
       </Menu>
     </li>

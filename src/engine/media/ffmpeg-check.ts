@@ -1,7 +1,8 @@
 import type { Health } from "../../shared/engine-api";
+import { t } from "../../shared/i18n";
 import { getRuntime } from "../config";
 import { logger } from "../lib/logger";
-import { FFMPEG_MISSING_MESSAGE, lastLines, runProcess } from "./run";
+import { lastLines, runProcess } from "./run";
 
 /*
  * At start, the engine checks that ffmpeg and ffprobe run, and which
@@ -12,7 +13,11 @@ import { FFMPEG_MISSING_MESSAGE, lastLines, runProcess } from "./run";
 
 const log = logger.child({ module: "ffmpeg-check" });
 
-let status: Health["ffmpeg"] = { version: null, error: null };
+/** `failed` becomes a sentence when asked: in the language of the moment. */
+let status: { version: string | null; failed: boolean } = {
+  version: null,
+  failed: false,
+};
 let running: Promise<Health["ffmpeg"]> | null = null;
 
 /** "ffmpeg version 8.1.3-Jellyfin Copyright (c) …" → "8.1.3-Jellyfin". */
@@ -46,6 +51,13 @@ async function versionOf(name: string, path: string): Promise<string> {
   return version;
 }
 
+function currentStatus(): Health["ffmpeg"] {
+  return {
+    version: status.version,
+    error: status.failed ? t("engine.errors.ffmpegMissing") : null,
+  };
+}
+
 /** Runs the check (once at a time) and remembers the result. */
 export function checkFfmpeg(): Promise<Health["ffmpeg"]> {
   running ??= (async () => {
@@ -55,25 +67,25 @@ export function checkFfmpeg(): Promise<Health["ffmpeg"]> {
         versionOf("ffmpeg", ffmpegPath),
         versionOf("ffprobe", ffprobePath),
       ]);
-      status = { version, error: null };
+      status = { version, failed: false };
       log.info({ version }, "ffmpeg works");
     } catch (error) {
-      status = { version: null, error: FFMPEG_MISSING_MESSAGE };
+      status = { version: null, failed: true };
       log.error({ err: error }, "ffmpeg doesn't work");
     }
     running = null;
-    return status;
+    return currentStatus();
   })();
   return running;
 }
 
 /** The last result; { null, null } while the first check runs. */
 export function ffmpegStatus(): Health["ffmpeg"] {
-  return status;
+  return currentStatus();
 }
 
 /** Tests. */
 export function resetFfmpegCheckForTests(): void {
-  status = { version: null, error: null };
+  status = { version: null, failed: false };
   running = null;
 }

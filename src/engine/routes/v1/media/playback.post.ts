@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { CreatePlaybackRequest } from "../../../../shared/engine-api";
+import { t } from "../../../../shared/i18n";
 import { appRoute } from "../../../http/app-route";
 import { AppError, ErrorCode } from "../../../http/errors";
 import { infoHashSchema } from "../params";
@@ -63,7 +64,7 @@ export const handler = appRoute({ schema }, async (ctx, _req, res) => {
   res.on("close", () => {
     if (!res.writableFinished) {
       abort.abort(
-        new AppError(ErrorCode.BadRequest, "The request was cancelled"),
+        new AppError(ErrorCode.BadRequest, t("engine.errors.requestCancelled")),
       );
     }
   });

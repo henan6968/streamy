@@ -20,6 +20,7 @@ import {
   useState,
 } from "react";
 import type { MediaInfo, Quality } from "../../../../shared/engine-api";
+import type { MessageKey } from "../../../../shared/i18n";
 import type {
   SubtitleBackground,
   SubtitleColor,
@@ -39,6 +40,7 @@ import { SPEEDS, speedLabel } from "@/components/player/speed";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { cn } from "@/lib/cn";
 import { formatDelay } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
 export type Fit = "contain" | "fill";
 
@@ -82,6 +84,7 @@ export type SettingsMenuProps = {
  */
 export function SettingsMenu(props: SettingsMenuProps) {
   const { onClose, anchorRef, media } = props;
+  const t = useT();
   const [panel, setPanel] = useState<Panel>("main");
   const ref = useRef<HTMLDivElement>(null);
 
@@ -144,7 +147,7 @@ export function SettingsMenu(props: SettingsMenuProps) {
     <div
       ref={ref}
       role="menu"
-      aria-label="Player settings"
+      aria-label={t("player.menu.title")}
       onKeyDown={onKeyDown}
       className="absolute right-0 bottom-full z-30 mb-2 w-80 max-w-[calc(100vw-1rem)] origin-bottom-right overflow-hidden rounded-xl border border-border bg-background/95 text-foreground shadow-2xl shadow-black/50 backdrop-blur-md transition-all duration-150 starting:translate-y-1 starting:opacity-0"
     >
@@ -152,7 +155,7 @@ export function SettingsMenu(props: SettingsMenuProps) {
         {panel === "main" && <MainPanel {...props} onOpen={setPanel} />}
         {panel === "quality" && media && (
           <SubPanel
-            title="Quality"
+            title={t("player.quality.title")}
             onBack={() => {
               setPanel("main");
             }}
@@ -173,7 +176,7 @@ export function SettingsMenu(props: SettingsMenuProps) {
         )}
         {panel === "audio" && media && (
           <SubPanel
-            title="Audio"
+            title={t("player.audio.title")}
             onBack={() => {
               setPanel("main");
             }}
@@ -212,7 +215,7 @@ export function SettingsMenu(props: SettingsMenuProps) {
         )}
         {panel === "speed" && (
           <SubPanel
-            title="Speed"
+            title={t("player.speed.title")}
             onBack={() => {
               setPanel("main");
             }}
@@ -232,15 +235,15 @@ export function SettingsMenu(props: SettingsMenuProps) {
         )}
         {panel === "fit" && (
           <SubPanel
-            title="Fit"
+            title={t("player.fit.title")}
             onBack={() => {
               setPanel("main");
             }}
           >
             <Choice
               checked={props.fit === "contain"}
-              label="Contain"
-              detail="Show the whole picture"
+              label={t("player.fit.contain")}
+              detail={t("player.fit.containDetail")}
               onSelect={() => {
                 props.onFit("contain");
                 onClose();
@@ -248,8 +251,8 @@ export function SettingsMenu(props: SettingsMenuProps) {
             />
             <Choice
               checked={props.fit === "fill"}
-              label="Fill"
-              detail="Fill the screen, cropping the edges"
+              label={t("player.fit.fill")}
+              detail={t("player.fit.fillDetail")}
               onSelect={() => {
                 props.onFit("fill");
                 onClose();
@@ -277,6 +280,7 @@ function currentAudioIndex({ media, selection }: SettingsMenuProps) {
 function MainPanel(
   props: SettingsMenuProps & { onOpen: (panel: Panel) => void },
 ) {
+  const t = useT();
   const { media, selection, onOpen } = props;
   const audio = media?.audioTracks.find(
     (track) => track.index === currentAudioIndex(props),
@@ -290,7 +294,7 @@ function MainPanel(
       {media && (
         <Row
           icon={<SlidersHorizontal />}
-          label="Quality"
+          label={t("player.quality.title")}
           value={qualityLabel(selection.quality, media)}
           onClick={() => {
             onOpen("quality");
@@ -300,8 +304,8 @@ function MainPanel(
       {media && media.audioTracks.length > 0 && (
         <Row
           icon={<AudioLines />}
-          label="Audio"
-          value={audio ? audioShortLabel(audio) : "Default"}
+          label={t("player.audio.title")}
+          value={audio ? audioShortLabel(audio) : t("player.audio.default")}
           onClick={() => {
             onOpen("audio");
           }}
@@ -310,8 +314,8 @@ function MainPanel(
       {media && (
         <Row
           icon={<Captions />}
-          label="Subtitles"
-          value={subtitle ? subtitleLabel(subtitle) : "Off"}
+          label={t("player.subtitles.title")}
+          value={subtitle ? subtitleLabel(subtitle) : t("common.off")}
           onClick={() => {
             onOpen("subtitles");
           }}
@@ -319,7 +323,7 @@ function MainPanel(
       )}
       <Row
         icon={<Gauge />}
-        label="Speed"
+        label={t("player.speed.title")}
         value={speedLabel(props.rate)}
         onClick={() => {
           onOpen("speed");
@@ -327,8 +331,12 @@ function MainPanel(
       />
       <Row
         icon={<Maximize />}
-        label="Fit"
-        value={props.fit === "contain" ? "Contain" : "Fill"}
+        label={t("player.fit.title")}
+        value={
+          props.fit === "contain"
+            ? t("player.fit.contain")
+            : t("player.fit.fill")
+        }
         onClick={() => {
           onOpen("fit");
         }}
@@ -346,7 +354,7 @@ function MainPanel(
         <span className="flex size-5 items-center justify-center text-muted-foreground [&_svg]:size-4">
           <Activity />
         </span>
-        <span className="flex-1">Stats for nerds</span>
+        <span className="flex-1">{t("player.stats.title")}</span>
         <span
           aria-hidden
           className={cn(
@@ -373,16 +381,17 @@ function SubtitlesPanel(
   },
 ) {
   const { media, selection, onSubtitle, onOpen, onClose } = props;
+  const t = useT();
   return (
     <SubPanel
-      title="Subtitles"
+      title={t("player.subtitles.title")}
       onBack={() => {
         onOpen("main");
       }}
     >
       <Choice
         checked={selection.subtitleId === null}
-        label="Off"
+        label={t("common.off")}
         onSelect={() => {
           onSubtitle(null);
           onClose();
@@ -402,18 +411,18 @@ function SubtitlesPanel(
       ))}
       {media.subtitleTracks.length === 0 && (
         <p className="px-3 py-2 text-sm text-muted-foreground">
-          No subtitles in this video or torrent.
+          {t("player.subtitles.none")}
         </p>
       )}
       <div className="my-1.5 h-px bg-border" />
       <Row
-        label="Style"
+        label={t("player.subtitles.style")}
         onClick={() => {
           onOpen("subtitle-style");
         }}
       />
       <Row
-        label="Delay"
+        label={t("player.subtitles.delay")}
         value={formatDelay(props.subtitleDelay)}
         onClick={() => {
           onOpen("subtitle-delay");
@@ -423,21 +432,24 @@ function SubtitlesPanel(
   );
 }
 
-const SIZE_OPTIONS: { value: SubtitleSize; label: string }[] = [
-  { value: "s", label: "S" },
-  { value: "m", label: "M" },
-  { value: "l", label: "L" },
-  { value: "xl", label: "XL" },
-];
-const BACKGROUND_OPTIONS: { value: SubtitleBackground; label: string }[] = [
-  { value: "none", label: "None" },
-  { value: "shadow", label: "Shadow" },
-  { value: "box", label: "Box" },
-];
-const COLOR_OPTIONS: { value: SubtitleColor; label: string }[] = [
-  { value: "white", label: "White" },
-  { value: "yellow", label: "Yellow" },
-];
+const SIZE_OPTIONS = [
+  { value: "s", label: "player.subtitleStyle.size.s" },
+  { value: "m", label: "player.subtitleStyle.size.m" },
+  { value: "l", label: "player.subtitleStyle.size.l" },
+  { value: "xl", label: "player.subtitleStyle.size.xl" },
+] as const satisfies readonly { value: SubtitleSize; label: MessageKey }[];
+const BACKGROUND_OPTIONS = [
+  { value: "none", label: "player.subtitleStyle.background.none" },
+  { value: "shadow", label: "player.subtitleStyle.background.shadow" },
+  { value: "box", label: "player.subtitleStyle.background.box" },
+] as const satisfies readonly {
+  value: SubtitleBackground;
+  label: MessageKey;
+}[];
+const COLOR_OPTIONS = [
+  { value: "white", label: "player.subtitleStyle.color.white" },
+  { value: "yellow", label: "player.subtitleStyle.color.yellow" },
+] as const satisfies readonly { value: SubtitleColor; label: MessageKey }[];
 
 /**
  * The menu is always dark: there, the selected segment (the page colour on
@@ -452,42 +464,52 @@ function StylePanel({
   onSubtitleLook,
   onBack,
 }: SettingsMenuProps & { onBack: () => void }) {
+  const t = useT();
   const set = (patch: Partial<SubtitleLook>) => {
     onSubtitleLook(patch);
   };
   return (
-    <SubPanel title="Subtitle style" onBack={onBack}>
+    <SubPanel title={t("player.subtitleStyle.title")} onBack={onBack}>
       <div className="flex flex-col gap-3 px-3 pt-1 pb-3">
-        <StyleRow label="Size">
+        <StyleRow label={t("player.subtitleStyle.size")}>
           <SegmentedControl
-            label="Size"
+            label={t("player.subtitleStyle.size")}
             size="sm"
             className={segmentedClass}
-            options={SIZE_OPTIONS}
+            options={SIZE_OPTIONS.map((option) => ({
+              value: option.value,
+              label: t(option.label),
+            }))}
             value={subtitleLook.size}
             onChange={(size) => {
               set({ size });
             }}
           />
         </StyleRow>
-        <StyleRow label="Background">
+        <StyleRow label={t("player.subtitleStyle.background")}>
           <SegmentedControl
-            label="Background"
+            label={t("player.subtitleStyle.background")}
             size="sm"
             className={segmentedClass}
-            options={BACKGROUND_OPTIONS}
+            options={BACKGROUND_OPTIONS.map((option) => ({
+              value: option.value,
+              label: t(option.label),
+            }))}
             value={subtitleLook.background}
             onChange={(background) => {
               set({ background });
             }}
           />
         </StyleRow>
-        <StyleRow label="Color">
+        <StyleRow label={t("player.subtitleStyle.color")}>
           <SegmentedControl
-            label="Color"
+            label={t("player.subtitleStyle.color")}
             size="sm"
             className={segmentedClass}
-            options={COLOR_OPTIONS}
+            options={COLOR_OPTIONS.map((option) => ({
+              value: option.value,
+              label: t(option.label),
+            }))}
             value={subtitleLook.color}
             onChange={(color) => {
               set({ color });
@@ -495,7 +517,7 @@ function StylePanel({
           />
         </StyleRow>
         <p className="text-xs text-muted-foreground">
-          For every video. Also in Settings → Playback.
+          {t("player.subtitleStyle.hint")}
         </p>
       </div>
     </SubPanel>
@@ -516,15 +538,16 @@ function DelayPanel({
   onSubtitleDelay,
   onBack,
 }: SettingsMenuProps & { onBack: () => void }) {
+  const t = useT();
   const change = (step: number) => {
     onSubtitleDelay(Math.round((subtitleDelay + step) * 10) / 10);
   };
   return (
-    <SubPanel title="Subtitle delay" onBack={onBack}>
+    <SubPanel title={t("player.subtitleDelay.title")} onBack={onBack}>
       <div className="flex flex-col gap-3 px-3 pt-1 pb-3">
         <div className="flex items-center justify-between gap-2">
           <StepButton
-            label="Earlier by 0.1 seconds"
+            label={t("player.subtitleDelay.earlier")}
             onClick={() => {
               change(-0.1);
             }}
@@ -538,7 +561,7 @@ function DelayPanel({
             {formatDelay(subtitleDelay)}
           </output>
           <StepButton
-            label="Later by 0.1 seconds"
+            label={t("player.subtitleDelay.later")}
             onClick={() => {
               change(0.1);
             }}
@@ -547,7 +570,7 @@ function DelayPanel({
           </StepButton>
         </div>
         <p className="text-xs text-muted-foreground">
-          Subtitles too early? Press +. Too late? Press −.
+          {t("player.subtitleDelay.hint")}
         </p>
         <button
           type="button"
@@ -558,7 +581,7 @@ function DelayPanel({
           }}
           className="h-8 rounded-md border border-input text-sm font-medium transition-colors outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
         >
-          Reset
+          {t("player.subtitleDelay.reset")}
         </button>
       </div>
     </SubPanel>
@@ -635,6 +658,7 @@ function SubPanel({
   onBack: () => void;
   children: ReactNode;
 }) {
+  const t = useT();
   return (
     <div role="group" aria-label={title}>
       <button
@@ -645,7 +669,7 @@ function SubPanel({
       >
         <ChevronLeft className="size-4 text-muted-foreground" aria-hidden />
         <span>{title}</span>
-        <span className="sr-only">(back)</span>
+        <span className="sr-only">{t("player.menu.back")}</span>
       </button>
       {children}
     </div>

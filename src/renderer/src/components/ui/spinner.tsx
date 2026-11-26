@@ -1,6 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/cn";
+import { useT } from "@/lib/i18n";
 
 const spinnerVariants = cva(
   "inline-block shrink-0 animate-spin rounded-full border-2 border-current border-r-transparent",
@@ -31,13 +32,14 @@ export function Spinner({
   className,
   size,
   tone,
-  label = "Loading",
+  label,
   ...props
 }: SpinnerProps) {
+  const t = useT();
   return (
     <span
       role="status"
-      aria-label={label}
+      aria-label={label ?? t("common.loading")}
       className={cn(spinnerVariants({ size, tone }), className)}
       {...props}
     />

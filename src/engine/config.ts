@@ -1,13 +1,14 @@
 import { isAbsolute, join } from "node:path";
 import { z } from "zod";
-import type {
-  EngineConfig,
-  EngineConfigMessage,
-  EngineInitMessage,
-  EngineShutdownMessage,
-  LogLevel,
-  MainToEngineMessage,
+import {
+  type EngineConfig,
+  type EngineConfigMessage,
+  type EngineInitMessage,
+  type EngineShutdownMessage,
+  type LogLevel,
+  type MainToEngineMessage,
 } from "../shared/engine-protocol";
+import { setLocale } from "../shared/i18n";
 import { PLAYBACK_DIR, SUBTITLES_DIR, TORRENTS_DIR } from "./cache";
 
 /*
@@ -96,6 +97,7 @@ const engineConfigSchema = z.object({
   uploadLimit: rateLimit,
   keepSharingMinutes: z.number().nonnegative().nullable(),
   maxConnections: z.number().int().positive().max(10_000),
+  locale: z.enum(["en", "zh-CN"]),
 }) satisfies z.ZodType<EngineConfig>;
 
 const logLevelSchema = z.enum([
@@ -172,6 +174,7 @@ export function initRuntime(
   init: Omit<EngineInitMessage, "type" | "secret" | "logLevel">,
   tuning: Partial<Tuning> = {},
 ): EngineRuntime {
+  setLocale(init.config.locale);
   runtime = {
     appVersion: init.appVersion,
     dataDir: init.dataDir,
@@ -194,6 +197,8 @@ export function getRuntime(): EngineRuntime {
 export function updateConfig(config: EngineConfig): EngineConfig {
   const current = getRuntime();
   const previous = current.config;
+  // Before anything can make a message: it's in the new language from here.
+  setLocale(config.locale);
   current.config = { ...config };
   return previous;
 }

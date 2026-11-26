@@ -2,6 +2,7 @@ import { isAbsolute } from "node:path";
 import { z } from "zod";
 import {
   HARDWARE_ENCODING_MODES,
+  LANGUAGES,
   LANGUAGE_TAG_PATTERN,
   type Settings,
   type SettingsUpdate,
@@ -17,6 +18,7 @@ export const SETTINGS_VERSION = 1;
 
 export const DEFAULT_SETTINGS: Readonly<Settings> = Object.freeze({
   theme: "system",
+  language: "system",
   uiScale: 1,
   cacheDir: null,
   cacheLimitGb: 20,
@@ -45,6 +47,7 @@ const rateLimit = z.number().int().min(1).max(10_000_000).nullable();
 
 const fields = {
   theme: z.enum(THEMES),
+  language: z.enum(LANGUAGES),
   uiScale: z.literal(UI_SCALES),
   cacheDir: z
     .string()
@@ -81,6 +84,7 @@ export const fieldSchemas: Readonly<Record<string, z.ZodType>> = fields;
  */
 export const savedSettingsSchema = z.object({
   theme: fields.theme.catch(DEFAULT_SETTINGS.theme),
+  language: fields.language.catch(DEFAULT_SETTINGS.language),
   uiScale: fields.uiScale.catch(DEFAULT_SETTINGS.uiScale),
   cacheDir: fields.cacheDir.catch(DEFAULT_SETTINGS.cacheDir),
   cacheLimitGb: fields.cacheLimitGb.catch(DEFAULT_SETTINGS.cacheLimitGb),
@@ -118,6 +122,7 @@ export const savedSettingsSchema = z.object({
 export const settingsUpdateSchema = z
   .strictObject({
     theme: fields.theme,
+    language: fields.language,
     uiScale: fields.uiScale,
     cacheLimitGb: fields.cacheLimitGb,
     hardwareAcceleration: fields.hardwareAcceleration,

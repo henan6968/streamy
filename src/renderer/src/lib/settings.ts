@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
+import { t } from "../../../shared/i18n";
 import type { SettingsSnapshot } from "../../../shared/settings";
-import { peopleText, SOMETHING_WENT_WRONG } from "@/lib/people-text";
+import { peopleText } from "@/lib/people-text";
 
 // The UI's view of the settings. The main process owns them; this keeps a
 // copy that updates whenever they change (from this window or anywhere else).
@@ -68,7 +69,7 @@ export async function runAction(
     return null;
   } catch (error) {
     console.error(error);
-    return SOMETHING_WENT_WRONG;
+    return t("common.somethingWentWrong");
   }
 }
 

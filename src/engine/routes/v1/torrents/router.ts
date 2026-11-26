@@ -1,4 +1,5 @@
 import express, { type RequestHandler, Router } from "express";
+import { t } from "../../../../shared/i18n";
 import { MAX_TORRENT_FILE_BYTES } from "../../../config";
 import { AppError, ErrorCode } from "../../../http/errors";
 import * as streamGet from "./stream.get";
@@ -25,7 +26,7 @@ const torrentFileBody: RequestHandler = (req, res, next) => {
       next(
         new AppError(
           ErrorCode.PayloadTooLarge,
-          "This .torrent file is too big (the limit is 10 MB)",
+          t("engine.errors.torrentFileTooBig"),
         ),
       );
       return;

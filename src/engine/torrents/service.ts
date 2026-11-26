@@ -11,6 +11,7 @@ import type {
   TorrentStatus,
   TorrentSummary,
 } from "../../shared/engine-api";
+import { t } from "../../shared/i18n";
 import {
   cacheDirState,
   deleteTorrentData,
@@ -323,7 +324,7 @@ async function identifyMagnet(text: string): Promise<Identified> {
   if (!parsed || !isInfoHash(parsed.infoHash)) {
     throw new AppError(
       ErrorCode.BadRequest,
-      "This magnet link has no BitTorrent info hash",
+      t("engine.errors.magnetNoInfoHash"),
     );
   }
   return {
@@ -344,7 +345,7 @@ async function identify(input: AddTorrentInput): Promise<Identified> {
   if (!parsed?.info) {
     throw new AppError(
       ErrorCode.BadRequest,
-      "This isn't a valid .torrent file",
+      t("engine.errors.invalidTorrentFile"),
     );
   }
   // The file list is right here: refuse a hostile one before adding it.
@@ -633,7 +634,7 @@ function watch(entry: Entry) {
     closeStreams(entry);
     // Destroyed without an error and without us stopping it.
     if (registry.get(infoHash) === entry && entry.error === null) {
-      fail(entry, "The download stopped unexpectedly");
+      fail(entry, t("engine.errors.downloadStopped"));
     }
   });
 }
@@ -686,7 +687,8 @@ function emitMetadata(entry: Entry) {
 
 function findEntry(infoHash: string): Entry {
   const entry = registry.get(infoHash);
-  if (!entry) throw new AppError(ErrorCode.NotFound, "Torrent not found");
+  if (!entry)
+    throw new AppError(ErrorCode.NotFound, t("engine.errors.torrentNotFound"));
   return entry;
 }
 
@@ -700,19 +702,20 @@ function findFile(
   if (entry.error !== null) {
     throw new AppError(
       ErrorCode.NotFound,
-      `This torrent failed: ${entry.error}`,
+      t("engine.errors.torrentFailed", { error: entry.error }),
     );
   }
   if (!entry.torrent.ready) {
     throw new AppError(
       ErrorCode.Conflict,
       entry.name === null
-        ? "The torrent's file list isn't known yet. Try again in a moment."
-        : "Streamy is checking what's already downloaded. Try again in a moment.",
+        ? t("engine.errors.metadataNotReady")
+        : t("engine.errors.checkingDownloads"),
     );
   }
   const file = entry.torrent.files[fileIndex];
-  if (!file) throw new AppError(ErrorCode.NotFound, "File not found");
+  if (!file)
+    throw new AppError(ErrorCode.NotFound, t("engine.errors.fileNotFound"));
   return { entry, file };
 }
 
@@ -739,7 +742,10 @@ async function readAll(
   if (file.length > maxBytes) {
     throw new AppError(
       ErrorCode.BadRequest,
-      `This file is too big to read (${megabytes(file.length)}, the limit is ${megabytes(maxBytes)})`,
+      t("engine.errors.fileTooBigToRead", {
+        size: megabytes(file.length),
+        limit: megabytes(maxBytes),
+      }),
     );
   }
   return buffer(openStream(entry, file));
@@ -751,12 +757,12 @@ function openStream(
   range: { start: number; end: number } = { start: 0, end: file.length - 1 },
 ): Readable {
   if (entry.torrent.destroyed) {
-    throw new AppError(ErrorCode.NotFound, "This torrent was removed");
+    throw new AppError(ErrorCode.NotFound, t("engine.errors.torrentRemoved"));
   }
   const { start, end } = range;
   if (file.length === 0) return Readable.from([]);
   if (start < 0 || end < start || end >= file.length) {
-    throw new AppError(ErrorCode.BadRequest, "Invalid byte range");
+    throw new AppError(ErrorCode.BadRequest, t("engine.errors.invalidRange"));
   }
 
   const stream = readFileRange(file, start, end);

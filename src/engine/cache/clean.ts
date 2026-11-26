@@ -1,5 +1,6 @@
 import { mkdir, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
+import { t } from "../../shared/i18n";
 import {
   CACHE_CONTENT_DIRS,
   CacheDirError,
@@ -30,14 +31,16 @@ const RM_OPTIONS = {
   retryDelay: 200,
 } as const;
 
-/** Why nothing was deleted from a folder without Streamy's marker. */
+/** The English text (tests assert it); people read engine.errors.notOurFolder. */
 export const NOT_OURS =
   "This doesn't look like Streamy's video folder, so nothing was deleted.";
 
 /** false when the folder is missing; throws when it isn't Streamy's. */
 async function isOurs(cacheDir: string): Promise<boolean> {
   const state = await cacheDirState(cacheDir);
-  if (state === "unmarked") throw new CacheDirError(NOT_OURS);
+  if (state === "unmarked") {
+    throw new CacheDirError(t("engine.errors.notOurFolder"));
+  }
   return state === "ok";
 }
 

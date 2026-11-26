@@ -1,6 +1,7 @@
 import parseTorrent from "parse-torrent";
 import { z } from "zod";
 import type { ProgressUpdate } from "../../../../shared/engine-api";
+import { t } from "../../../../shared/i18n";
 import { appRoute } from "../../../http/app-route";
 import { AppError, ErrorCode } from "../../../http/errors";
 import { type LibraryStore, toFileProgress } from "../../../library";
@@ -58,8 +59,8 @@ export const handler = appRoute(
       throw new AppError(
         ErrorCode.NotFound,
         libraryCall(() => library.getTorrent(infoHash))
-          ? "This torrent has no such file"
-          : "This torrent isn't in the library",
+          ? t("engine.errors.torrentNoSuchFile")
+          : t("engine.errors.torrentNotInLibrary"),
       );
     }
     const saved = libraryCall(() =>

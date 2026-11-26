@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from "electron";
 import { IpcChannel } from "../shared/api";
+import { type Locale, resolveLocale, setLocale } from "../shared/i18n";
 import { ENGINE_ENTRY } from "./engine/entry";
 import { type Engine, setupEngine } from "./engine/index";
 import { setDevDockIcon } from "./icon";
@@ -81,6 +82,14 @@ function startApp(settings: SettingsStore): void {
   let mainWindow: BrowserWindow | null = null;
   /** Set once the app is ready (the window is never created before that). */
   let actions: AppActions | null = null;
+  /** The language main says things in (menu, dialogs, messages to the UI). */
+  let locale: Locale = "en";
+  /** Reads the language setting, once the app can be asked for the OS one. */
+  const applyLanguage = () => {
+    locale = resolveLocale(settings.get().language, app.getLocale());
+    setLocale(locale);
+  };
+
   /** Set once the app is ready. */
   let engine: Engine | null = null;
   /** Quitting has begun: no new windows from here on. */
@@ -98,6 +107,8 @@ function startApp(settings: SettingsStore): void {
       mainWindow = createMainWindow({
         stateFile: dataFile("window-state.json"),
         zoomFactor: settings.get().uiScale,
+        locale,
+        systemLocale: app.getLocale(),
         hidden: headless,
       });
       if (actions) handleShortcuts(mainWindow.webContents, actions);
@@ -151,6 +162,8 @@ function startApp(settings: SettingsStore): void {
     if (process.platform === "win32") {
       app.setAppUserModelId("io.github.justartiom.streamy");
     }
+    // Before anything says a word: the OS language is only known from here.
+    applyLanguage();
     const defaultCacheDir = getDefaultCacheDir();
     // First: the UI asks it for data as soon as it loads.
     engine = setupEngine({
@@ -211,6 +224,15 @@ function startApp(settings: SettingsStore): void {
       resetZoom: controller.resetUiScale,
     };
     setAppMenu(actions);
+    // Changing the language changes the menu too (the engine is told by its
+    // own config source, the windows by the settings broadcast).
+    let menuLanguage = locale;
+    settings.onChange(() => {
+      applyLanguage();
+      if (locale === menuLanguage) return;
+      menuLanguage = locale;
+      if (actions) setAppMenu(actions);
+    });
     if (!headless) setDevDockIcon();
     const window = showMainWindow();
     magnetLinks.start();

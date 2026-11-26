@@ -19,6 +19,7 @@ import { controlButtonClass } from "@/components/player/control-styles";
 import { Scrubber } from "@/components/player/scrubber";
 import { cn } from "@/lib/cn";
 import { formatTime } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
 export function ControlButton({
   label,
@@ -93,6 +94,7 @@ export function PlayerControls({
   onHoldChange,
   settingsMenu,
 }: PlayerControlsProps) {
+  const t = useT();
   const VolumeIcon =
     muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
@@ -122,7 +124,7 @@ export function PlayerControls({
 
       <div className="flex items-center gap-1">
         <ControlButton
-          label={paused ? "Play" : "Pause"}
+          label={paused ? t("common.play") : t("common.pause")}
           shortcut="Space"
           onClick={onTogglePlay}
         >
@@ -133,7 +135,7 @@ export function PlayerControls({
           )}
         </ControlButton>
         <ControlButton
-          label="Back 10 seconds"
+          label={t("player.controls.back10Seconds")}
           shortcut="J"
           onClick={() => {
             onSeekBy(-10);
@@ -142,7 +144,7 @@ export function PlayerControls({
           <RotateCcw />
         </ControlButton>
         <ControlButton
-          label="Forward 10 seconds"
+          label={t("player.controls.forward10Seconds")}
           shortcut="L"
           onClick={() => {
             onSeekBy(10);
@@ -153,7 +155,9 @@ export function PlayerControls({
 
         <div className="group/volume flex items-center">
           <ControlButton
-            label={muted ? "Unmute" : "Mute"}
+            label={
+              muted ? t("player.controls.unmute") : t("player.controls.mute")
+            }
             shortcut="M"
             onClick={onToggleMute}
           >
@@ -161,7 +165,7 @@ export function PlayerControls({
           </ControlButton>
           <input
             type="range"
-            aria-label="Volume"
+            aria-label={t("player.controls.volume")}
             min={0}
             max={1}
             step={0.05}
@@ -182,7 +186,11 @@ export function PlayerControls({
 
         {hasSubtitles && (
           <ControlButton
-            label={subtitlesOn ? "Turn subtitles off" : "Turn subtitles on"}
+            label={
+              subtitlesOn
+                ? t("player.controls.turnSubtitlesOff")
+                : t("player.controls.turnSubtitlesOn")
+            }
             shortcut="C"
             aria-pressed={subtitlesOn}
             onClick={onToggleSubtitles}
@@ -194,7 +202,7 @@ export function PlayerControls({
         <div className="relative">
           <ControlButton
             ref={settingsButtonRef}
-            label="Settings"
+            label={t("common.settings")}
             aria-haspopup="menu"
             aria-expanded={settingsOpen}
             onClick={onToggleSettings}
@@ -210,12 +218,19 @@ export function PlayerControls({
         </div>
 
         {pipSupported && (
-          <ControlButton label="Picture in picture" onClick={onPip}>
+          <ControlButton
+            label={t("player.controls.pictureInPicture")}
+            onClick={onPip}
+          >
             <PictureInPicture2 />
           </ControlButton>
         )}
         <ControlButton
-          label={fullscreen ? "Exit full screen" : "Full screen"}
+          label={
+            fullscreen
+              ? t("player.controls.exitFullScreen")
+              : t("player.controls.fullScreen")
+          }
           shortcut="F"
           onClick={onToggleFullscreen}
         >

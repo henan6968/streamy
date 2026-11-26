@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { BrowserWindow, nativeTheme, screen } from "electron";
 import { IpcChannel, TITLE_BAR_HEIGHT } from "../shared/api";
+import type { Locale } from "../shared/i18n";
 import { windowIconPath } from "./icon";
 import { uiUrl } from "./protocol";
 import {
@@ -65,6 +66,10 @@ interface MainWindowOptions {
   stateFile: string;
   /** Interface size to start with (the uiScale setting). */
   zoomFactor: number;
+  /** The language to say things in, before the UI has read the settings. */
+  locale: Locale;
+  /** The computer's own language, for the UI's "system" setting. */
+  systemLocale: string;
   /**
    * Never shown and muted, but still painting and playing: the smoke test
    * (smoke.ts) and the e2e tests (test-mode.ts).
@@ -75,6 +80,8 @@ interface MainWindowOptions {
 export function createMainWindow({
   stateFile,
   zoomFactor,
+  locale,
+  systemLocale,
   hidden = false,
 }: MainWindowOptions): BrowserWindow {
   const state = loadWindowState(stateFile, screenWorkAreas());
@@ -99,6 +106,12 @@ export function createMainWindow({
         { titleBarOverlay: titleBarOverlay(zoomFactor) }),
     webPreferences: {
       preload: join(import.meta.dirname, "../preload/index.cjs"),
+      // The UI paints in the right language from its first frame (the
+      // preload passes it on before it reads the settings).
+      additionalArguments: [
+        `--streamy-locale=${locale}`,
+        `--streamy-system-locale=${systemLocale}`,
+      ],
       // These are Electron's defaults; spelled out so nobody turns them off.
       sandbox: true,
       contextIsolation: true,

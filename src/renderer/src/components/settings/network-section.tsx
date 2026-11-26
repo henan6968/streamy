@@ -8,6 +8,7 @@ import {
 import { SettingRow } from "@/components/settings/setting-row";
 import { Select } from "@/components/ui/select";
 import { formatRateLimit } from "@/lib/format";
+import { type T, useT } from "@/lib/i18n";
 import { settingsApi } from "@/lib/settings";
 
 // <select> values are strings and can't be null, so null ("unlimited",
@@ -30,16 +31,17 @@ function withCurrent(choices: readonly number[], current: number | null) {
   return list;
 }
 
-function sharingLabel(minutes: number): string {
-  if (minutes === 0) return "Off";
+function sharingLabel(minutes: number, t: T): string {
+  if (minutes === 0) return t("common.off");
   if (minutes % 60 === 0) {
     const hours = minutes / 60;
-    return hours === 1 ? "1 hour" : `${hours} hours`;
+    return t("settings.network.keepSharing.hours", { count: hours });
   }
-  return minutes === 1 ? "1 minute" : `${minutes} minutes`;
+  return t("settings.network.keepSharing.minutes", { count: minutes });
 }
 
 export function NetworkSection({ snapshot }: { snapshot: SettingsSnapshot }) {
+  const t = useT();
   const {
     downloadLimitKBps,
     uploadLimitKBps,
@@ -55,8 +57,8 @@ export function NetworkSection({ snapshot }: { snapshot: SettingsSnapshot }) {
   return (
     <>
       <SettingRow
-        title="Download limit"
-        description="Leaves room for other apps on a slow connection. Videos may need to buffer more."
+        title={t("settings.network.downloadLimit.title")}
+        description={t("settings.network.downloadLimit.description")}
       >
         {({ titleId, descriptionId }) => (
           <RateLimitSelect
@@ -71,8 +73,8 @@ export function NetworkSection({ snapshot }: { snapshot: SettingsSnapshot }) {
       </SettingRow>
 
       <SettingRow
-        title="Upload limit"
-        description="How fast Streamy shares with other people."
+        title={t("settings.network.uploadLimit.title")}
+        description={t("settings.network.uploadLimit.description")}
       >
         {({ titleId, descriptionId }) => (
           <RateLimitSelect
@@ -87,8 +89,8 @@ export function NetworkSection({ snapshot }: { snapshot: SettingsSnapshot }) {
       </SettingRow>
 
       <SettingRow
-        title="Keep sharing after watching"
-        description="Torrents work because people share what they download. Sharing for a while afterwards is fair to them; Streamy stops when the time is up."
+        title={t("settings.network.keepSharing.title")}
+        description={t("settings.network.keepSharing.description")}
       >
         {({ titleId, descriptionId }) => (
           <Select
@@ -108,17 +110,19 @@ export function NetworkSection({ snapshot }: { snapshot: SettingsSnapshot }) {
           >
             {sharingChoices.map((minutes) => (
               <option key={minutes} value={minutes}>
-                {sharingLabel(minutes)}
+                {sharingLabel(minutes, t)}
               </option>
             ))}
-            <option value={NONE}>Until Streamy quits</option>
+            <option value={NONE}>
+              {t("settings.network.keepSharing.untilQuit")}
+            </option>
           </Select>
         )}
       </SettingRow>
 
       <SettingRow
-        title="Max connections"
-        description="People each torrent connects to at once. Fewer can help a slow network or an old router."
+        title={t("settings.network.maxConnections.title")}
+        description={t("settings.network.maxConnections.description")}
       >
         {({ titleId, descriptionId }) => (
           <Select
@@ -156,6 +160,8 @@ function RateLimitSelect({
   value: number | null;
   onChange: (value: number | null) => void;
 }) {
+  const t = useT();
+
   return (
     <Select
       size="sm"
@@ -168,7 +174,7 @@ function RateLimitSelect({
         onChange(next === NONE ? null : Number(next));
       }}
     >
-      <option value={NONE}>Unlimited</option>
+      <option value={NONE}>{t("settings.network.rateLimit.unlimited")}</option>
       {withCurrent(RATE_LIMIT_CHOICES_KBPS, value).map((kbps) => (
         <option key={kbps} value={kbps}>
           {formatRateLimit(kbps)}

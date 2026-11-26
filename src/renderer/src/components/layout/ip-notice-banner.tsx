@@ -1,5 +1,6 @@
 import { Banner } from "@/components/ui/banner";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n";
 import { dismissIpNotice, useIpNoticeVisible } from "@/lib/ip-notice";
 
 /**
@@ -7,13 +8,14 @@ import { dismissIpNotice, useIpNoticeVisible } from "@/lib/ip-notice";
  * swarm means the other people in it can see your IP address.
  */
 export function IpNoticeBanner() {
+  const t = useT();
   const visible = useIpNoticeVisible();
   if (!visible) return null;
 
   return (
     <Banner
       tone="privacy"
-      title="Peers can see your IP address while a torrent is active."
+      title={t("app.ipNotice.title")}
       actions={
         <Button
           size="sm"
@@ -21,11 +23,11 @@ export function IpNoticeBanner() {
           className="h-7 bg-transparent px-2.5"
           onClick={dismissIpNotice}
         >
-          Got it
+          {t("app.ipNotice.dismiss")}
         </Button>
       }
     >
-      That's how torrents work. A VPN keeps it private.
+      {t("app.ipNotice.body")}
     </Banner>
   );
 }

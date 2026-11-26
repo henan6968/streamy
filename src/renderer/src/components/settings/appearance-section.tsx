@@ -1,4 +1,5 @@
 import { Monitor, Moon, Sun } from "lucide-react";
+import type { MessageKey } from "../../../../shared/i18n";
 import {
   type SettingsSnapshot,
   type SettingsUpdate,
@@ -7,13 +8,22 @@ import {
 } from "../../../../shared/settings";
 import { SettingRow } from "@/components/settings/setting-row";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { useT } from "@/lib/i18n";
 import { isMac } from "@/lib/platform";
 import { settingsApi } from "@/lib/settings";
 
-const THEME_OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
-  { value: "system", label: "System", icon: Monitor },
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
+const THEME_OPTIONS: {
+  value: Theme;
+  labelKey: MessageKey;
+  icon: typeof Sun;
+}[] = [
+  {
+    value: "system",
+    labelKey: "settings.appearance.theme.system",
+    icon: Monitor,
+  },
+  { value: "light", labelKey: "settings.appearance.theme.light", icon: Sun },
+  { value: "dark", labelKey: "settings.appearance.theme.dark", icon: Moon },
 ];
 
 const SCALE_OPTIONS = UI_SCALES.map((scale) => ({
@@ -32,19 +42,25 @@ export function AppearanceSection({
 }: {
   snapshot: SettingsSnapshot;
 }) {
+  const t = useT();
   const { theme, uiScale } = snapshot.settings;
   const mod = isMac ? "⌘" : "Ctrl";
+  const themeOptions = THEME_OPTIONS.map(({ value, labelKey, icon }) => ({
+    value,
+    label: t(labelKey),
+    icon,
+  }));
 
   return (
     <>
       <SettingRow
-        title="Theme"
-        description="System follows your computer's light or dark mode."
+        title={t("settings.appearance.theme.title")}
+        description={t("settings.appearance.theme.description")}
       >
         <SegmentedControl
-          label="Theme"
+          label={t("settings.appearance.theme.title")}
           size="sm"
-          options={THEME_OPTIONS}
+          options={themeOptions}
           value={theme}
           onChange={(next) => {
             update({ theme: next });
@@ -53,11 +69,11 @@ export function AppearanceSection({
       </SettingRow>
 
       <SettingRow
-        title="Interface size"
-        description={`Makes everything bigger or smaller. Shortcuts: ${mod} + and ${mod} −.`}
+        title={t("settings.appearance.scale.title")}
+        description={t("settings.appearance.scale.description", { mod })}
       >
         <SegmentedControl
-          label="Interface size"
+          label={t("settings.appearance.scale.title")}
           size="sm"
           options={SCALE_OPTIONS}
           value={String(uiScale)}

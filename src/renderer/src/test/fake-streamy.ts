@@ -22,6 +22,7 @@ export const DEFAULT_CACHE_DIR = "/Users/test/Library/Caches/Streamy";
 export const INITIAL_SNAPSHOT: SettingsSnapshot = {
   settings: {
     theme: "system",
+    language: "system",
     uiScale: 1,
     cacheDir: null,
     cacheLimitGb: 20,
@@ -86,6 +87,8 @@ function createFakeStreamy() {
 
   const api = {
     platform: "darwin",
+    initialLocale: "en",
+    systemLocale: "en-US",
     versions: { electron: "45.0.0", chrome: "156.0.0.0", node: "24.0.0" },
     getAppInfo: vi.fn(() =>
       Promise.resolve({ name: "Streamy", version: "0.0.0" }),

@@ -1,12 +1,12 @@
 import { z } from "zod";
+import { t } from "../../../../shared/i18n";
 import { appRoute } from "../../../http/app-route";
 import { openTorrent } from "./open";
 
 const schema = z.object({
   // express.raw (in router.ts) only gives a Buffer for this content type.
   body: z.instanceof(Buffer, {
-    message:
-      "Send the .torrent file with Content-Type: application/x-bittorrent",
+    error: () => t("engine.errors.sendTorrentFile"),
   }),
 });
 

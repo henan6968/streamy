@@ -4,26 +4,27 @@ import { Dialog, DialogTitle } from "@/components/ui/dialog";
 import { useRemoveTorrent } from "@/hooks/use-torrents";
 import { errorMessage } from "@/lib/api";
 import { cn } from "@/lib/cn";
+import { useT } from "@/lib/i18n";
 import { toast } from "@/lib/toast";
 
 export type RemoveTarget = { infoHash: string; name: string | null };
 
 type Choice = "data" | "forget";
 
-const CHOICES: { value: Choice; title: string; description: string }[] = [
-  {
-    value: "data",
-    title: "Delete the downloaded video",
-    description:
-      "Frees up space. It stays in Recent, and downloads again if you watch it later.",
-  },
-  {
-    value: "forget",
-    title: "Remove it from Streamy",
-    description:
-      "Also forgets it: it leaves Recent and Continue watching, with its saved positions.",
-  },
-];
+/**
+ * The message with its {name} in <bdi>, so a right-to-left name stays whole
+ * in the sentence.
+ */
+function withName(message: string, name: string) {
+  const [before = "", after = ""] = message.split("{name}");
+  return (
+    <>
+      {before}
+      <bdi>{name}</bdi>
+      {after}
+    </>
+  );
+}
 
 /**
  * "Remove <name>?" with two choices: delete only the downloaded data, or
@@ -39,9 +40,23 @@ export function RemoveTorrentDialog({
   /** After it worked (the torrent page goes Home). */
   onRemoved?: () => void;
 }) {
+  const t = useT();
   const remove = useRemoveTorrent();
   const [choice, setChoice] = useState<Choice>("data");
   const titleId = useId();
+
+  const choices: { value: Choice; title: string; description: string }[] = [
+    {
+      value: "data",
+      title: t("app.remove.choice.data.title"),
+      description: t("app.remove.choice.data.description"),
+    },
+    {
+      value: "forget",
+      title: t("app.remove.choice.forget.title"),
+      description: t("app.remove.choice.forget.description"),
+    },
+  ];
 
   const close = () => {
     remove.reset();
@@ -56,14 +71,21 @@ export function RemoveTorrentDialog({
       { infoHash: target.infoHash, forget },
       {
         onSuccess: () => {
-          const label = target.name ? <bdi>{target.name}</bdi> : "the torrent";
-          toast.success(
-            forget ? (
-              <>Removed {label} from Streamy</>
-            ) : (
-              <>Deleted the downloaded video of {label}</>
-            ),
-          );
+          const { name } = target;
+          if (name) {
+            toast.success(
+              withName(
+                forget ? t("app.remove.removed") : t("app.remove.deleted"),
+                name,
+              ),
+            );
+          } else {
+            toast.success(
+              forget
+                ? t("app.remove.removedUnknown")
+                : t("app.remove.deletedUnknown"),
+            );
+          }
           close();
           onRemoved?.();
         },
@@ -88,12 +110,14 @@ export function RemoveTorrentDialog({
         }}
       >
         <DialogTitle id={titleId}>
-          Remove {target?.name ? <bdi>{target.name}</bdi> : "this torrent"}?
+          {target?.name
+            ? withName(t("app.remove.title"), target.name)
+            : t("app.remove.titleUnknown")}
         </DialogTitle>
 
         <fieldset className="flex flex-col gap-2" disabled={remove.isPending}>
-          <legend className="sr-only">What to remove</legend>
-          {CHOICES.map((item) => (
+          <legend className="sr-only">{t("app.remove.legend")}</legend>
+          {choices.map((item) => (
             <label
               key={item.value}
               className={cn(
@@ -128,10 +152,12 @@ export function RemoveTorrentDialog({
 
         <div className="flex justify-end gap-2">
           <Button variant="outline" disabled={remove.isPending} onClick={close}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button type="submit" variant="danger" loading={remove.isPending}>
-            {choice === "forget" ? "Remove" : "Delete video"}
+            {choice === "forget"
+              ? t("common.remove")
+              : t("app.remove.deleteVideoButton")}
           </Button>
         </div>
       </form>

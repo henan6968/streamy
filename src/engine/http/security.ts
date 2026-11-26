@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import type { RequestHandler } from "express";
 import { ENGINE_SECRET_HEADER } from "../../shared/engine-protocol";
+import { t } from "../../shared/i18n";
 import { AppError, ErrorCode } from "./errors";
 
 /*
@@ -17,7 +18,10 @@ import { AppError, ErrorCode } from "./errors";
 export const requireLoopbackHost: RequestHandler = (req, _res, next) => {
   const expected = `127.0.0.1:${req.socket.localPort ?? ""}`;
   if (req.headers.host !== expected) {
-    throw new AppError(ErrorCode.Forbidden, "This address isn't allowed");
+    throw new AppError(
+      ErrorCode.Forbidden,
+      t("engine.errors.addressNotAllowed"),
+    );
   }
   next();
 };
@@ -41,7 +45,7 @@ export function requireSecret(secret: string): RequestHandler {
   return (req, _res, next) => {
     const given = req.headers[ENGINE_SECRET_HEADER];
     if (!isSecret(typeof given === "string" ? given : undefined, secret)) {
-      throw new AppError(ErrorCode.Unauthorized, "Missing or wrong key");
+      throw new AppError(ErrorCode.Unauthorized, t("engine.errors.missingKey"));
     }
     next();
   };

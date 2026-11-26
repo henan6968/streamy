@@ -1,4 +1,5 @@
 import { type ChildProcess, spawn } from "node:child_process";
+import { t } from "../../shared/i18n";
 import { AppError, ErrorCode } from "../http/errors";
 import { trackChild } from "./children";
 
@@ -15,12 +16,15 @@ export type RunResult = {
   timedOut: boolean;
 };
 
-/** What people see when ffmpeg can't run at all. Details go to the log. */
+/** The English text (tests assert it); people read engine.errors.ffmpegMissing. */
 export const FFMPEG_MISSING_MESSAGE =
   "ffmpeg is missing or can't run. Reinstalling Streamy should fix it.";
 
 export function ffmpegMissingError() {
-  return new AppError(ErrorCode.ServiceUnavailable, FFMPEG_MISSING_MESSAGE);
+  return new AppError(
+    ErrorCode.ServiceUnavailable,
+    t("engine.errors.ffmpegMissing"),
+  );
 }
 
 /** spawn() failed because the program doesn't exist. */

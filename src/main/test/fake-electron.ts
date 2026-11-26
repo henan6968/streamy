@@ -37,6 +37,8 @@ const app = Object.assign(new EventEmitter(), {
   isPackaged: true,
   getName: () => "Streamy",
   getVersion: () => "0.0.0-test",
+  /** The OS language: English, so tests compare English text. */
+  getLocale: vi.fn(() => "en-US"),
   getPath: vi.fn((name: string) => `/fake/${name}`),
   getAppPath: vi.fn(() => "/fake/app"),
   setAppLogsPath: vi.fn(),

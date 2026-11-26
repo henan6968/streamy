@@ -53,6 +53,7 @@ export function testConfig(cacheDir: string): EngineConfig {
     uploadLimit: null,
     keepSharingMinutes: 10,
     maxConnections: 100,
+    locale: "en",
   };
 }
 

@@ -8,6 +8,7 @@ import {
   shell,
 } from "electron";
 import { IpcChannel } from "../../shared/api";
+import { t } from "../../shared/i18n";
 import {
   type ActionResult,
   type CacheUsage,
@@ -47,11 +48,6 @@ export interface SettingsController {
   stepUiScale: (direction: 1 | -1) => void;
   resetUiScale: () => void;
 }
-
-const FOLDER_UNAVAILABLE =
-  "The video folder isn't available. If it's on an external drive, connect it and try again.";
-const OLD_FOLDER_UNAVAILABLE =
-  "The old video folder isn't available. If it's on an external drive, connect it and try again.";
 
 /**
  * Applies the settings, and lets the UI read and change them over IPC.
@@ -124,8 +120,8 @@ export function setupSettings({
     IpcChannel.ChooseCacheDir,
     async (event): Promise<ChooseCacheDirResult> => {
       const options: OpenDialogOptions = {
-        title: "Choose where Streamy keeps videos",
-        buttonLabel: "Use This Folder",
+        title: t("main.videoFolder.chooseTitle"),
+        buttonLabel: t("main.videoFolder.useFolder"),
         defaultPath: cacheDir(),
         properties: ["openDirectory", "createDirectory", "promptToCreate"],
       };
@@ -157,7 +153,7 @@ export function setupSettings({
 
   handleTrusted(IpcChannel.ShowCacheDir, (): ActionResult => {
     if (chosenFolderMissing()) {
-      return { status: "error", message: FOLDER_UNAVAILABLE };
+      return { status: "error", message: t("main.videoFolder.unavailable") };
     }
     // Never create a chosen folder that's gone: it could end up on the wrong
     // disk. The default one is always ours to create.
@@ -172,10 +168,13 @@ export function setupSettings({
     // Only ever the folder this run really used before: never a path from
     // the page.
     if (previousCacheDir === null) {
-      return { status: "error", message: "The video folder hasn't changed." };
+      return { status: "error", message: t("main.videoFolder.notChanged") };
     }
     if (!existsSync(previousCacheDir)) {
-      return { status: "error", message: OLD_FOLDER_UNAVAILABLE };
+      return {
+        status: "error",
+        message: t("main.videoFolder.oldUnavailable"),
+      };
     }
     shell.showItemInFolder(previousCacheDir);
     return { status: "ok" };
@@ -193,7 +192,7 @@ export function setupSettings({
 
   handleTrusted(IpcChannel.ClearCache, async (): Promise<ActionResult> => {
     if (chosenFolderMissing()) {
-      return { status: "error", message: FOLDER_UNAVAILABLE };
+      return { status: "error", message: t("main.videoFolder.unavailable") };
     }
     // The engine is the only writer of the video folder: it stops its
     // torrents before deleting their files.

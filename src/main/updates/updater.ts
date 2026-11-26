@@ -1,4 +1,5 @@
 import type { UpdateStatus } from "../../shared/api";
+import { t } from "../../shared/i18n";
 import type { ActionResult } from "../../shared/settings";
 import type { Logger } from "../logs";
 import {
@@ -34,13 +35,26 @@ export const PREPARE_TIMEOUT_MS = 15_000;
 /** "Restart to update": by then Streamy must have started quitting. */
 export const INSTALL_QUIT_TIMEOUT_MS = 10_000;
 
-/** What people see when something went wrong (Settings → Advanced). */
+/**
+ * What people see when something went wrong (Settings → Advanced). Getters:
+ * the words follow the language set with setLocale().
+ */
 export const UPDATE_MESSAGES = {
-  offline: "Couldn't reach GitHub. Check your internet connection.",
-  busy: "GitHub is busy right now. Streamy will try again later.",
-  check: "Couldn't check for updates. Streamy will try again later.",
-  download: "Couldn't download the update. Streamy will try again later.",
-  browser: "Couldn't open your browser.",
+  get offline() {
+    return t("main.update.error.offline");
+  },
+  get busy() {
+    return t("main.update.error.busy");
+  },
+  get check() {
+    return t("main.update.error.check");
+  },
+  get download() {
+    return t("main.update.error.download");
+  },
+  get browser() {
+    return t("main.update.error.browser");
+  },
 } as const;
 
 /** What electron-updater's checkForUpdates() resolves to (the parts we use). */

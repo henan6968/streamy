@@ -5,8 +5,8 @@ import type { FileProgress, TorrentDetail } from "../../../shared/engine-api";
 import { type Neighbour, Player } from "@/components/player/player";
 import {
   Center,
-  CHECKING_DETAIL,
-  CHECKING_TITLE,
+  CHECKING_DETAIL_KEY,
+  CHECKING_TITLE_KEY,
   PlayerMessage,
   Ring,
 } from "@/components/player/player-overlays";
@@ -26,6 +26,7 @@ import {
 import { errorMessage, isApiError } from "@/lib/api";
 import { readableName } from "@/lib/file-names";
 import { formatPeers, formatSwarm } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { isInfoHash } from "@/lib/magnet";
 import { naturalSortBy } from "@/lib/natural-sort";
 import { peopleText } from "@/lib/people-text";
@@ -40,6 +41,7 @@ const NO_PEERS_HINT_SECONDS = 30;
 
 /** The player page: /watch/:infoHash/:fileIndex. */
 export function WatchPage() {
+  const t = useT();
   const params = useParams();
   const infoHash = (params.infoHash ?? "").toLowerCase();
   const fileIndex = Number(params.fileIndex);
@@ -48,7 +50,7 @@ export function WatchPage() {
     return (
       <Frame>
         <PlayerMessage
-          title="This link doesn't point to a video"
+          title={t("player.watch.badLink")}
           icon={<FileX />}
           actions={<HomeLink />}
         />
@@ -75,13 +77,14 @@ function WatchFile({
   infoHash: string;
   fileIndex: number;
 }) {
+  const t = useT();
   const library = useLibraryTorrent(infoHash);
   // A failed library (or one that doesn't know the torrent) just means
   // there's nothing to resume.
   if (library.isPending && library.fetchStatus !== "idle") {
     return (
       <Frame>
-        <Loading title="Loading…" />
+        <Loading title={t("common.loadingNow")} />
       </Frame>
     );
   }
@@ -129,6 +132,7 @@ function WatchView({
   fileIndex: number;
   savedProgress: FileProgress | null;
 }) {
+  const t = useT();
   const location = useLocation();
   const torrentQuery = useTorrent(infoHash);
   const library = useLibraryTorrent(infoHash);
@@ -146,7 +150,7 @@ function WatchView({
     ? readableName(fileName)
     : torrentName
       ? readableName(torrentName)
-      : "Video";
+      : t("player.watch.untitled");
   // The torrent's name only when it says something the title doesn't.
   const subtitle =
     torrentName && readableName(torrentName) !== title ? torrentName : null;
@@ -168,8 +172,12 @@ function WatchView({
         <PlayerMessage
           title={
             torrentQuery.error instanceof ReopenFailedError
-              ? `Couldn't open ${torrentName ?? "this torrent"}`
-              : `Couldn't load ${torrentName ?? "this torrent"}`
+              ? t("player.watch.openFailed", {
+                  name: torrentName ?? t("player.watch.thisTorrent"),
+                })
+              : t("player.watch.loadFailed", {
+                  name: torrentName ?? t("player.watch.thisTorrent"),
+                })
           }
           message={errorMessage(torrentQuery.error)}
           actions={
@@ -179,7 +187,7 @@ function WatchView({
                 onClick={() => void torrentQuery.refetch()}
               >
                 <RotateCw />
-                Try again
+                {t("common.tryAgain")}
               </Button>
               <HomeLink variant="outline" />
             </>
@@ -193,10 +201,13 @@ function WatchView({
     return (
       <Frame>
         <PlayerMessage
-          title="This torrent stopped working"
+          title={t("player.watch.torrentFailed")}
           // The engine's words when they're for people (a raw system
           // error went to its log instead).
-          message={peopleText(torrent.error, "Something went wrong with it.")}
+          message={peopleText(
+            torrent.error,
+            t("player.watch.torrentFailedFallback"),
+          )}
           actions={<BackButton />}
         />
       </Frame>
@@ -207,7 +218,7 @@ function WatchView({
     return (
       <Frame>
         <PlayerMessage
-          title="This file isn't in the torrent"
+          title={t("player.watch.fileMissing")}
           icon={<FileX />}
           actions={<BackButton />}
         />
@@ -284,7 +295,7 @@ function WatchView({
     return (
       <Frame>
         {waitingForEngine ? (
-          <Loading title="Waiting for the playback engine…" />
+          <Loading title={t("player.watch.waitingForEngine")} />
         ) : (
           <Preparing torrent={torrent} />
         )}
@@ -339,18 +350,19 @@ function Loading({ title, detail }: { title: string; detail?: string | null }) {
  * show after a few seconds.
  */
 function Preparing({ torrent }: { torrent: TorrentDetail | undefined }) {
+  const t = useT();
   const [since] = useState(() => Date.now());
   const now = useNow(1000);
   const seconds = (now - since) / 1000;
 
-  if (!torrent) return <Loading title="Loading…" />;
+  if (!torrent) return <Loading title={t("common.loadingNow")} />;
 
   if (torrent.status === "checking") {
     // Peers aren't what's missing: no "Finding peers", no "nobody shares".
     return (
       <Loading
-        title={CHECKING_TITLE}
-        detail={seconds >= 6 ? CHECKING_DETAIL : null}
+        title={t(CHECKING_TITLE_KEY)}
+        detail={seconds >= 6 ? t(CHECKING_DETAIL_KEY) : null}
       />
     );
   }
@@ -358,21 +370,23 @@ function Preparing({ torrent }: { torrent: TorrentDetail | undefined }) {
   if (torrent.status === "fetching_metadata") {
     return (
       <Loading
-        title="Finding peers…"
+        title={t("player.watch.findingPeers")}
         detail={
           seconds >= NO_PEERS_HINT_SECONDS && torrent.peers === 0
-            ? "Nobody seems to be sharing this yet. Keep waiting, or go back."
-            : `${formatPeers(torrent.peers)} so far`
+            ? t("player.watch.nobodySharing")
+            : t("player.watch.peersSoFar", {
+                peers: formatPeers(torrent.peers),
+              })
         }
       />
     );
   }
   return (
     <Loading
-      title="Preparing video…"
+      title={t("player.loading.preparing")}
       detail={
         seconds >= 6
-          ? `This can take a while on a slow torrent · ${formatSwarm(torrent)}`
+          ? t("player.loading.slowTorrent", { swarm: formatSwarm(torrent) })
           : null
       }
     />
@@ -390,11 +404,12 @@ function MediaError({
   retrying: boolean;
   onRetry: () => void;
 }) {
+  const t = useT();
   if (noFfmpeg) {
     return (
       <PlayerMessage
-        title="This video needs converting"
-        message="It can't be played as it is, and Streamy can't convert it because ffmpeg isn't working. Reinstalling Streamy should fix it."
+        title={t("player.watch.needsConverting")}
+        message={t("player.watch.needsConvertingMessage")}
         icon={<FileX />}
         actions={<BackButton />}
       />
@@ -414,8 +429,8 @@ function MediaError({
     <PlayerMessage
       title={
         isApiError(error, 0)
-          ? "Can't reach the playback engine"
-          : "Couldn't read the video"
+          ? t("player.error.engineUnreachable.title")
+          : t("player.watch.readVideoFailed")
       }
       message={errorMessage(error)}
       icon={<TriangleAlert />}
@@ -423,7 +438,7 @@ function MediaError({
         <>
           <Button loading={retrying} onClick={onRetry}>
             <RotateCw />
-            Try again
+            {t("common.tryAgain")}
           </Button>
           <BackButton />
         </>
@@ -440,15 +455,18 @@ function TorrentGone({
   infoHash: string;
   name: string | null;
 }) {
+  const t = useT();
   const add = useAddTorrent();
 
   return (
     <PlayerMessage
-      title={name ? `${name} was removed` : "This torrent was removed"}
+      title={
+        name
+          ? t("player.watch.removedNamed", { name })
+          : t("player.error.torrentRemoved.title")
+      }
       message={
-        add.error
-          ? errorMessage(add.error)
-          : "Open it again to keep watching. It downloads again."
+        add.error ? errorMessage(add.error) : t("player.watch.removedMessage")
       }
       icon={<CloudOff />}
       actions={
@@ -460,7 +478,7 @@ function TorrentGone({
             }}
           >
             <RotateCw />
-            Open it again
+            {t("player.watch.openAgain")}
           </Button>
           <HomeLink variant="outline" />
         </>
@@ -474,19 +492,21 @@ function HomeLink({
 }: {
   variant?: "primary" | "outline";
 }) {
+  const t = useT();
   return (
     <Link to="/" className={buttonVariants({ variant })}>
       <Home />
-      Home
+      {t("player.home")}
     </Link>
   );
 }
 
 function BackButton() {
+  const t = useT();
   const goBack = useGoBack();
   return (
     <Button variant="outline" onClick={goBack}>
-      Back
+      {t("common.back")}
     </Button>
   );
 }

@@ -32,6 +32,7 @@ import {
   isEngineUnavailable,
 } from "@/lib/api";
 import { getEngineStatus, subscribeEngineStatus } from "@/lib/engine-status";
+import { t } from "@/lib/i18n";
 
 export type EnginePhase =
   /** Nothing started yet. */
@@ -690,7 +691,7 @@ export class PlaybackEngine {
     });
     if (step.action !== "restart") return false;
     this.update({ forceMode: step.forceMode });
-    this.options.onNotice?.("Switched to converted playback");
+    this.options.onNotice?.(t("player.notice.converted"));
     void this.startSession(start);
     return true;
   }
@@ -791,9 +792,8 @@ export class PlaybackEngine {
 
     this.fail({
       kind: "playback",
-      title: "Converted video can't play here",
-      message:
-        "This system supports neither Media Source Extensions nor HLS, which converted videos need.",
+      title: t("player.error.convertedUnsupported.title"),
+      message: t("player.error.convertedUnsupported.message"),
     });
   }
 
@@ -802,8 +802,7 @@ export class PlaybackEngine {
     return {
       id: "",
       mode: "direct",
-      reason:
-        "Playing the file as it is (Streamy can't convert video: ffmpeg isn't working)",
+      reason: t("player.reason.rawPlayback"),
       url: `/v1/torrents/${infoHash}/files/${fileIndex}/stream`,
       offset: 0,
       duration: media?.duration ?? 0,
@@ -1050,7 +1049,7 @@ export class PlaybackEngine {
       if (kind === "network") this.networkRestarts += 1;
       if (step.forceMode !== this.snapshot.forceMode) {
         this.update({ forceMode: step.forceMode });
-        this.options.onNotice?.("Switched to converted playback");
+        this.options.onNotice?.(t("player.notice.converted"));
       }
       void this.startSession(this.getMovieTime());
       return;
@@ -1265,21 +1264,21 @@ function startError(error: unknown): EngineError {
     if (error.status === 404) {
       return {
         kind: "removed",
-        title: "This torrent was removed",
-        message: "It isn't in Streamy anymore, so it can't be played.",
+        title: t("player.error.torrentRemoved.title"),
+        message: t("player.error.torrentRemoved.message"),
       };
     }
     if (error.status === 0) {
       return {
         kind: "playback",
-        title: "Can't reach the playback engine",
+        title: t("player.error.engineUnreachable.title"),
         message: errorMessage(error),
       };
     }
   }
   return {
     kind: "playback",
-    title: "Couldn't start the video",
+    title: t("player.error.startFailed.title"),
     message: errorMessage(error),
   };
 }
@@ -1292,24 +1291,22 @@ function playbackError(
   if (raw) {
     return {
       kind: "playback",
-      title: "This video can't be played",
-      message:
-        "It can't be played as it is, and Streamy can't convert it because ffmpeg isn't working.",
+      title: t("player.error.unplayable.title"),
+      message: t("player.error.unplayableRaw.message"),
     };
   }
   if (kind === "network") {
     return {
       kind: "playback",
-      title: "Lost the video stream",
-      message:
-        "The video stopped loading. The torrent may be too slow, or the playback engine stopped.",
+      title: t("player.error.lostStream.title"),
+      message: t("player.error.lostStream.message"),
     };
   }
   return {
     kind: "playback",
-    title: "This video can't be played",
+    title: t("player.error.unplayable.title"),
     message: conversionFailed
-      ? "Converting it stopped unexpectedly. Try again, or pick a lower quality."
-      : "Neither the file itself nor the converted version could play.",
+      ? t("player.error.conversionStopped.message")
+      : t("player.error.nothingPlayed.message"),
   };
 }

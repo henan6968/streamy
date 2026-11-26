@@ -6,6 +6,7 @@ import type {
   SubtitleTrack,
 } from "../../../../shared/engine-api";
 import { SUBTITLES_OFF } from "../../../../shared/settings";
+import { t } from "@/lib/i18n";
 import { languageName, sameLanguage } from "@/lib/languages";
 
 /** The viewer's choices; everything else in a playback request follows from them. */
@@ -204,11 +205,11 @@ export function codecName(codec: string) {
 
 /** 2 → "2.0", 6 → "5.1", 8 → "7.1", 1 → "Mono". */
 export function channelLayout(channels: number) {
-  if (channels === 1) return "Mono";
+  if (channels === 1) return t("player.track.mono");
   if (channels === 2) return "2.0";
   if (channels === 6) return "5.1";
   if (channels === 8) return "7.1";
-  return `${channels} ch`;
+  return t("player.track.channels", { count: channels });
 }
 
 /** "English · 5.1 · AC3", "Russian (Dub) · 2.0 · AAC". */
@@ -225,15 +226,19 @@ export function audioShortLabel(track: AudioTrack, locale?: string) {
 
 export function subtitleLabel(track: SubtitleTrack, locale?: string) {
   const name = languageName(track.language, locale);
-  return track.isForced ? `${name} (forced)` : name;
+  return track.isForced
+    ? t("player.subtitles.forced", { language: name })
+    : name;
 }
 
 /** The muted second line: title / file name and what kind of track it is. */
 export function subtitleDetail(track: SubtitleTrack) {
   const parts: string[] = [];
   if (track.title) parts.push(track.title);
-  parts.push(track.source === "file" ? "file" : codecName(track.codec));
-  if (!track.isText) parts.push("burned in");
+  parts.push(
+    track.source === "file" ? t("player.track.file") : codecName(track.codec),
+  );
+  if (!track.isText) parts.push(t("player.track.burnedIn"));
   return parts.join(" · ");
 }
 
@@ -252,7 +257,12 @@ export type QualityOption = { value: Quality; label: string; hint?: string };
 export function qualityOptions(media: MediaInfo | null): QualityOption[] {
   const height = media?.video?.height ?? null;
   const options: QualityOption[] = [
-    { value: "original", label: height ? `Original (${height}p)` : "Original" },
+    {
+      value: "original",
+      label: height
+        ? t("player.quality.originalWithHeight", { height })
+        : t("player.quality.original"),
+    },
   ];
   if (!height) return options;
   for (const preset of PRESETS) {
@@ -260,7 +270,7 @@ export function qualityOptions(media: MediaInfo | null): QualityOption[] {
       options.push({
         value: preset.quality,
         label: preset.quality,
-        hint: "Converted while it plays · uses more CPU",
+        hint: t("player.quality.convertedHint"),
       });
     }
   }

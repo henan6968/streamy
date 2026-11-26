@@ -1,3 +1,4 @@
+import { t } from "../../shared/i18n";
 import { isInfoHash } from "./info-hash";
 import { isLocalPeer, isLocalUrl } from "./local-address";
 
@@ -84,10 +85,7 @@ export function parseMagnetInput(
   }
 
   if (!value.toLowerCase().startsWith("magnet:?")) {
-    return {
-      error:
-        "Paste a magnet link (magnet:?xt=urn:btih:…) or a 40-character info hash",
-    };
+    return { error: t("engine.errors.pasteMagnet") };
   }
 
   const topics = new URLSearchParams(value.slice("magnet:?".length)).getAll(
@@ -100,7 +98,7 @@ export function parseMagnetInput(
   // v2 torrents use a different hash (btmh). Hybrid magnets carry both and
   // work; v2-only ones would need a v2 client.
   if (topics.some((topic) => BTMH.test(topic))) {
-    return { error: "BitTorrent v2-only magnets aren't supported yet" };
+    return { error: t("engine.errors.magnetV2Only") };
   }
-  return { error: "This magnet link has no BitTorrent info hash" };
+  return { error: t("engine.errors.magnetNoInfoHash") };
 }

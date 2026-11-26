@@ -1,18 +1,24 @@
+import { t } from "../../../shared/i18n";
 import { AppError, ErrorCode } from "../../http/errors";
 import { engineServices } from "../../services";
 
 // Checks before starting something that writes to the video folder.
 
+/** The English text (tests import it); people read engine.errors.diskAlmostFull. */
 export const DISK_FULL_MESSAGE =
   "Your disk is almost full. Free up some space, then try again.";
 
+/** The English text; people read engine.errors.clearingCache. */
 export const CLEARING_MESSAGE =
   "Streamy is deleting its downloaded videos. Try again in a moment.";
 
 /** 503 while downloading is paused because the disk is almost full. */
 export function assertEnoughDiskSpace(): void {
   if (engineServices()?.diskGuard.isLow()) {
-    throw new AppError(ErrorCode.ServiceUnavailable, DISK_FULL_MESSAGE);
+    throw new AppError(
+      ErrorCode.ServiceUnavailable,
+      t("engine.errors.diskAlmostFull"),
+    );
   }
 }
 
@@ -25,7 +31,10 @@ export function assertEnoughDiskSpace(): void {
  */
 export function admitTorrent(_infoHash: string, known: boolean): void {
   if (engineServices()?.cachePolicy.isClearing()) {
-    throw new AppError(ErrorCode.ServiceUnavailable, CLEARING_MESSAGE);
+    throw new AppError(
+      ErrorCode.ServiceUnavailable,
+      t("engine.errors.clearingCache"),
+    );
   }
   if (!known) assertEnoughDiskSpace();
 }

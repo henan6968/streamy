@@ -5,6 +5,7 @@ import type {
   VideoInfo,
 } from "../../shared/engine-api";
 import { redact } from "../../shared/redact";
+import { t } from "../../shared/i18n";
 import { getRuntime } from "../config";
 import { AppError, ErrorCode } from "../http/errors";
 import { logger } from "../lib/logger";
@@ -135,7 +136,7 @@ export function toProbedMedia(probe: ProbeOutput): ProbedMedia {
   const videoStream = videoIndex >= 0 ? videos[videoIndex] : undefined;
 
   if (!videoStream) {
-    throw new AppError(ErrorCode.BadRequest, "This file has no video");
+    throw new AppError(ErrorCode.BadRequest, t("engine.errors.noVideo"));
   }
 
   const video: VideoInfo = {
@@ -212,7 +213,7 @@ export async function ffprobe(input: string): Promise<ProbeOutput> {
   if (result.timedOut) {
     throw new AppError(
       ErrorCode.ServiceUnavailable,
-      "Couldn't read the video info in time. The torrent may be too slow.",
+      t("engine.errors.probeTimeout"),
     );
   }
   if (result.code !== 0) {
@@ -221,10 +222,7 @@ export async function ffprobe(input: string): Promise<ProbeOutput> {
       { code: result.code, stderr: lastLines(redact(result.stderr), 3) },
       "ffprobe failed",
     );
-    throw new AppError(
-      ErrorCode.BadRequest,
-      "Couldn't read this file as a video",
-    );
+    throw new AppError(ErrorCode.BadRequest, t("engine.errors.notAVideo"));
   }
   return JSON.parse(result.stdout.toString("utf8")) as ProbeOutput;
 }

@@ -2,6 +2,7 @@ import { readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join, sep } from "node:path";
 import chardet from "chardet";
 import type { Cue } from "../../shared/engine-api";
+import { t } from "../../shared/i18n";
 import { cachePaths, getRuntime } from "../config";
 import { AppError, ErrorCode } from "../http/errors";
 import { logger } from "../lib/logger";
@@ -86,10 +87,7 @@ async function convertFile(file: TorrentFileHandle): Promise<Cue[]> {
 
   const format = extensionOf(file.name);
   if (!isSubtitleFileFormat(format)) {
-    throw new AppError(
-      ErrorCode.BadRequest,
-      "Only text subtitle files are supported",
-    );
+    throw new AppError(ErrorCode.BadRequest, t("engine.subtitles.textOnly"));
   }
 
   const bytes = await file.readAll({ maxBytes: MAX_SUBTITLE_BYTES });
@@ -129,7 +127,7 @@ async function convertFile(file: TorrentFileHandle): Promise<Cue[]> {
     );
     throw new AppError(
       ErrorCode.BadRequest,
-      "Couldn't read this subtitle file",
+      t("engine.subtitles.convertFailed"),
     );
   }
 
@@ -152,10 +150,7 @@ export const subtitlesService = {
   getFileCues(infoHash: string, fileIndex: number): Promise<Cue[]> {
     const file = torrentService.getFile(infoHash, fileIndex);
     if (!isTextSubtitleFile(file)) {
-      throw new AppError(
-        ErrorCode.BadRequest,
-        "Only text subtitle files are supported",
-      );
+      throw new AppError(ErrorCode.BadRequest, t("engine.subtitles.textOnly"));
     }
     torrentService.touch(infoHash);
     hookRemovals();

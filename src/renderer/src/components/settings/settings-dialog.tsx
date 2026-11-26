@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { type ComponentType, useEffect, useId, useState } from "react";
+import type { MessageKey } from "../../../../shared/i18n";
 import type { SettingsSnapshot } from "../../../../shared/settings";
 import { AboutSection } from "@/components/settings/about-section";
 import { AdvancedSection } from "@/components/settings/advanced-section";
@@ -21,6 +22,7 @@ import { StorageSection } from "@/components/settings/storage-section";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { cn } from "@/lib/cn";
+import { useT } from "@/lib/i18n";
 import {
   closeSettings,
   showSettingsSection,
@@ -31,7 +33,7 @@ import {
 
 type Section = {
   id: string;
-  label: string;
+  labelKey: MessageKey;
   icon: LucideIcon;
   Content: ComponentType<{ snapshot: SettingsSnapshot }>;
 };
@@ -47,26 +49,46 @@ type Section = {
 const SECTIONS: Section[] = [
   {
     id: "general",
-    label: "General",
+    labelKey: "settings.section.general",
     icon: SlidersHorizontal,
     Content: GeneralSection,
   },
   {
     id: "appearance",
-    label: "Appearance",
+    labelKey: "settings.section.appearance",
     icon: Palette,
     Content: AppearanceSection,
   },
   {
     id: "playback",
-    label: "Playback",
+    labelKey: "settings.section.playback",
     icon: Clapperboard,
     Content: PlaybackSection,
   },
-  { id: "storage", label: "Storage", icon: HardDrive, Content: StorageSection },
-  { id: "network", label: "Network", icon: Network, Content: NetworkSection },
-  { id: "advanced", label: "Advanced", icon: Wrench, Content: AdvancedSection },
-  { id: "about", label: "About", icon: Info, Content: AboutSection },
+  {
+    id: "storage",
+    labelKey: "settings.section.storage",
+    icon: HardDrive,
+    Content: StorageSection,
+  },
+  {
+    id: "network",
+    labelKey: "settings.section.network",
+    icon: Network,
+    Content: NetworkSection,
+  },
+  {
+    id: "advanced",
+    labelKey: "settings.section.advanced",
+    icon: Wrench,
+    Content: AdvancedSection,
+  },
+  {
+    id: "about",
+    labelKey: "settings.section.about",
+    icon: Info,
+    Content: AboutSection,
+  },
 ];
 
 /** The dialog's fade-out (Dialog's duration-150), plus a little. */
@@ -108,6 +130,7 @@ function useOpenSession(open: boolean): number | null {
 
 /** Opened from the title bar's gear, ⌘, / Ctrl+, or the app menu. */
 export function SettingsDialog() {
+  const t = useT();
   const open = useSettingsDialogOpen();
   const session = useOpenSession(open);
   const snapshot = useSettings();
@@ -128,11 +151,11 @@ export function SettingsDialog() {
     >
       <div className="flex h-[min(520px,80dvh)]">
         <nav
-          aria-label="Settings sections"
+          aria-label={t("settings.dialog.sections")}
           className="flex w-48 shrink-0 flex-col gap-0.5 border-r border-border bg-muted p-2"
         >
           <h2 id={titleId} className="px-2 pt-1.5 pb-3 text-sm font-semibold">
-            Settings
+            {t("common.settings")}
           </h2>
           {SECTIONS.map((item) => (
             <button
@@ -150,18 +173,18 @@ export function SettingsDialog() {
               )}
             >
               <item.icon />
-              {item.label}
+              {t(item.labelKey)}
             </button>
           ))}
         </nav>
 
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="flex h-12 shrink-0 items-center justify-between border-b border-border pr-2 pl-5">
-            <h3 className="text-sm font-semibold">{section.label}</h3>
+            <h3 className="text-sm font-semibold">{t(section.labelKey)}</h3>
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label="Close settings"
+              aria-label={t("settings.dialog.close")}
               onClick={closeSettings}
             >
               <X />
@@ -172,7 +195,9 @@ export function SettingsDialog() {
               (snapshot ? (
                 <section.Content key={session} snapshot={snapshot} />
               ) : (
-                <p className="text-sm text-muted-foreground">Loading…</p>
+                <p className="text-sm text-muted-foreground">
+                  {t("common.loadingNow")}
+                </p>
               ))}
           </div>
         </div>

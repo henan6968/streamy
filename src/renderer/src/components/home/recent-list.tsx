@@ -10,11 +10,28 @@ import { useForgetTorrent } from "@/hooks/use-library";
 import { useNow } from "@/hooks/use-now";
 import { errorMessage } from "@/lib/api";
 import { formatBytes, formatRelativeTime } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { torrentPath } from "@/lib/routes";
 import { toast } from "@/lib/toast";
 
+/**
+ * The message with its {name} in <bdi>, so a right-to-left name stays whole
+ * in the sentence.
+ */
+function withName(message: string, name: string) {
+  const [before = "", after = ""] = message.split("{name}");
+  return (
+    <>
+      {before}
+      <bdi>{name}</bdi>
+      {after}
+    </>
+  );
+}
+
 /** Torrents opened before, newest first. One click opens one again. */
 export function RecentList({ torrents }: { torrents: LibraryTorrent[] }) {
+  const t = useT();
   const forget = useForgetTorrent();
   const [removing, setRemoving] = useState<LibraryTorrent | null>(null);
   // "5 minutes ago" moves on by itself.
@@ -30,11 +47,13 @@ export function RecentList({ torrents }: { torrents: LibraryTorrent[] }) {
   return (
     <section aria-labelledby="recent" className="flex flex-col gap-3">
       <h2 id="recent" className="text-sm font-medium">
-        Recent
+        {t("app.home.recent")}
       </h2>
       <Card padding="none" className="overflow-hidden">
         <ul className="divide-y divide-border">
           {torrents.map((torrent) => {
+            const size =
+              torrent.size !== null ? formatBytes(torrent.size) : null;
             const opened = formatRelativeTime(torrent.lastOpenedAt, now);
             return (
               <li
@@ -53,29 +72,29 @@ export function RecentList({ torrents }: { torrents: LibraryTorrent[] }) {
                     {torrent.name}
                   </Link>
                   <span className="text-xs text-muted-foreground tabular-nums">
-                    {[
-                      torrent.size !== null && formatBytes(torrent.size),
-                      opened && `Opened ${opened}`,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
+                    {size && opened
+                      ? t("app.home.recentDetails", { size, opened })
+                      : (size ??
+                        (opened && t("app.home.recentOpened", { opened })))}
                   </span>
                 </div>
                 {torrent.active && (
                   <Badge
                     tone="success"
                     dot
-                    title="Connected to peers: downloading and sharing"
+                    title={t("app.home.recentActiveTitle")}
                   >
-                    Active
+                    {t("app.home.recentActive")}
                   </Badge>
                 )}
                 <Button
                   variant="ghost"
                   size="icon-sm"
                   className="relative z-10"
-                  aria-label={`Remove ${torrent.name} from Streamy`}
-                  title="Remove from Streamy"
+                  aria-label={t("app.home.recentRemoveLabel", {
+                    name: torrent.name,
+                  })}
+                  title={t("app.home.recentRemove")}
                   onClick={() => {
                     forget.reset();
                     setRemoving(torrent);
@@ -92,12 +111,12 @@ export function RecentList({ torrents }: { torrents: LibraryTorrent[] }) {
       <ConfirmDialog
         open={removing !== null}
         title={
-          <>
-            Remove {removing ? <bdi>{removing.name}</bdi> : "it"} from Streamy?
-          </>
+          removing
+            ? withName(t("app.home.recentRemoveTitle"), removing.name)
+            : t("app.home.recentRemoveTitleUnknown")
         }
-        description="It leaves Recent and Continue watching, and its downloaded video is deleted."
-        confirmLabel="Remove"
+        description={t("app.home.recentRemoveBody")}
+        confirmLabel={t("common.remove")}
         busy={forget.isPending}
         error={forget.error ? errorMessage(forget.error) : null}
         onClose={close}
@@ -106,11 +125,7 @@ export function RecentList({ torrents }: { torrents: LibraryTorrent[] }) {
           const { infoHash, name } = removing;
           forget.mutate(infoHash, {
             onSuccess: () => {
-              toast.success(
-                <>
-                  Removed <bdi>{name}</bdi> from Streamy
-                </>,
-              );
+              toast.success(withName(t("app.remove.removed"), name));
               close();
             },
           });

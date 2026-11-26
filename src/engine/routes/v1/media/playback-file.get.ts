@@ -2,6 +2,7 @@ import { createReadStream } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { pipeline } from "node:stream/promises";
 import { z } from "zod";
+import { t } from "../../../../shared/i18n";
 import { AppError, ErrorCode } from "../../../http/errors";
 import { appRoute } from "../../../http/app-route";
 import { logger } from "../../../lib/logger";
@@ -13,7 +14,9 @@ const schema = z.object({
   params: z.object({
     id: playbackIdSchema,
     // Only these names, ever: the value becomes part of a file path.
-    file: z.string().regex(HLS_FILE_PATTERN, "Unknown playback file"),
+    file: z.string().regex(HLS_FILE_PATTERN, {
+      error: () => t("engine.validation.playbackFile"),
+    }),
   }),
   // Blocking playlist reload: hold the answer until segment N exists. Other
   // _HLS_* parameters (_HLS_part, _HLS_skip) are ignored.
@@ -43,7 +46,10 @@ export const handler = appRoute({ schema }, async (ctx, req, res) => {
     // Small and rewritten every few seconds: read it whole, never cache it.
     const text = await readFile(file.path, "utf8").catch(() => null);
     if (text === null) {
-      throw new AppError(ErrorCode.NotFound, "The playlist isn't ready yet");
+      throw new AppError(
+        ErrorCode.NotFound,
+        t("engine.errors.playlistNotReady"),
+      );
     }
     res.setHeader("Content-Type", file.contentType);
     res.setHeader("Cache-Control", "no-store");
@@ -57,7 +63,7 @@ export const handler = appRoute({ schema }, async (ctx, req, res) => {
     () => null,
   );
   if (size === null) {
-    throw new AppError(ErrorCode.NotFound, "This segment doesn't exist yet");
+    throw new AppError(ErrorCode.NotFound, t("engine.errors.segmentNotReady"));
   }
   res.setHeader("Content-Type", file.contentType);
   res.setHeader("Content-Length", size);

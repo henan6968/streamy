@@ -1,5 +1,6 @@
+import { t } from "../../shared/i18n";
 import { logger } from "../lib/logger";
-import { clearCache, NOT_OURS } from "./clean";
+import { clearCache } from "./clean";
 import { freeSpace as measureFreeSpace } from "./disk-space";
 import { planEviction } from "./eviction";
 import { CacheDirError, cacheDirState } from "./layout";
@@ -242,7 +243,7 @@ export function createCachePolicy(deps: CachePolicyDeps): CachePolicy {
       // Before stopping anything: nothing changes for a folder that isn't
       // Streamy's (stopping everything to then delete nothing helps no one).
       if ((await cacheDirState(cacheDir)) === "unmarked") {
-        throw new CacheDirError(NOT_OURS);
+        throw new CacheDirError(t("engine.errors.notOurFolder"));
       }
       await stopEverything();
       await clearCache(cacheDir);

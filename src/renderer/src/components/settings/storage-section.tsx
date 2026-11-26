@@ -11,14 +11,9 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PathText } from "@/components/ui/path-text";
 import { Select } from "@/components/ui/select";
 import { formatBytes } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import { platform } from "@/lib/platform";
 import { runAction, settingsApi } from "@/lib/settings";
-
-const REVEAL_LABEL = {
-  darwin: "Show in Finder",
-  win32: "Show in File Explorer",
-  linux: "Show in file manager",
-}[platform];
 
 const NO_LIMIT = "none";
 
@@ -55,6 +50,7 @@ function useCacheUsage(cacheDir: string) {
 }
 
 export function StorageSection({ snapshot }: { snapshot: SettingsSnapshot }) {
+  const t = useT();
   const { cacheDir, cacheLimitGb } = snapshot.settings;
   const isDefault = cacheDir === null;
   const path = cacheDir ?? snapshot.defaultCacheDir;
@@ -64,6 +60,13 @@ export function StorageSection({ snapshot }: { snapshot: SettingsSnapshot }) {
   const [error, setError] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [clearError, setClearError] = useState<string | null>(null);
+
+  const revealLabel =
+    platform === "darwin"
+      ? t("settings.storage.videoFolder.showInFinder")
+      : platform === "win32"
+        ? t("settings.storage.videoFolder.showInFileExplorer")
+        : t("settings.storage.videoFolder.showInFileManager");
 
   /** Runs one folder action at a time and shows what went wrong, if anything. */
   const run = (action: () => Promise<unknown>) => {
@@ -96,8 +99,8 @@ export function StorageSection({ snapshot }: { snapshot: SettingsSnapshot }) {
     <>
       <SettingRow
         stacked
-        title="Video folder"
-        description="Streamy keeps videos here while you watch them. Choose a drive with plenty of free space."
+        title={t("settings.storage.videoFolder.title")}
+        description={t("settings.storage.videoFolder.description")}
       >
         <div className="flex flex-col gap-3">
           <div className="flex items-start gap-2.5 rounded-md border border-border bg-muted px-3 py-2.5">
@@ -107,7 +110,7 @@ export function StorageSection({ snapshot }: { snapshot: SettingsSnapshot }) {
             </p>
             {isDefault && (
               <span className="shrink-0 rounded border border-border px-1.5 text-[11px] leading-5 text-muted-foreground">
-                Default
+                {t("settings.storage.videoFolder.default")}
               </span>
             )}
           </div>
@@ -121,7 +124,7 @@ export function StorageSection({ snapshot }: { snapshot: SettingsSnapshot }) {
                 run(() => settingsApi.chooseCacheDir());
               }}
             >
-              Change…
+              {t("settings.storage.videoFolder.change")}
             </Button>
             <Button
               size="sm"
@@ -132,7 +135,7 @@ export function StorageSection({ snapshot }: { snapshot: SettingsSnapshot }) {
               }}
             >
               <FolderOpen />
-              {REVEAL_LABEL}
+              {revealLabel}
             </Button>
             {!isDefault && (
               <Button
@@ -144,7 +147,7 @@ export function StorageSection({ snapshot }: { snapshot: SettingsSnapshot }) {
                 }}
               >
                 <RotateCcw />
-                Use default
+                {t("settings.storage.videoFolder.useDefault")}
               </Button>
             )}
           </div>
@@ -152,7 +155,7 @@ export function StorageSection({ snapshot }: { snapshot: SettingsSnapshot }) {
           {snapshot.previousCacheDir && (
             <div className="flex flex-col items-start gap-2 rounded-md border border-border px-3 py-2.5 text-sm">
               <p className="text-muted-foreground">
-                Videos already downloaded stay in the old folder:{" "}
+                {t("settings.storage.videoFolder.oldFolder")}{" "}
                 <PathText
                   path={snapshot.previousCacheDir}
                   className="text-xs text-foreground"
@@ -167,7 +170,7 @@ export function StorageSection({ snapshot }: { snapshot: SettingsSnapshot }) {
                 }}
               >
                 <FolderOpen />
-                Show old folder
+                {t("settings.storage.videoFolder.showOldFolder")}
               </Button>
             </div>
           )}
@@ -181,11 +184,11 @@ export function StorageSection({ snapshot }: { snapshot: SettingsSnapshot }) {
       </SettingRow>
 
       <SettingRow
-        title="Space used"
+        title={t("settings.storage.spaceUsed.title")}
         description={
           usage?.status === "missing"
-            ? "The folder isn't available. If it's on an external drive, connect it."
-            : "Videos you've watched. They download again if you watch them later."
+            ? t("settings.storage.spaceUsed.descriptionMissing")
+            : t("settings.storage.spaceUsed.description")
         }
       >
         <div className="flex items-center gap-3">
@@ -201,14 +204,14 @@ export function StorageSection({ snapshot }: { snapshot: SettingsSnapshot }) {
               setConfirmClear(true);
             }}
           >
-            Clear now…
+            {t("settings.storage.spaceUsed.clear")}
           </Button>
         </div>
       </SettingRow>
 
       <SettingRow
-        title="Size limit"
-        description="When videos take more space than this, or your disk is almost full, Streamy deletes the ones you watched longest ago."
+        title={t("settings.storage.sizeLimit.title")}
+        description={t("settings.storage.sizeLimit.description")}
       >
         {({ titleId, descriptionId }) => (
           <Select
@@ -233,16 +236,18 @@ export function StorageSection({ snapshot }: { snapshot: SettingsSnapshot }) {
                 {gb} GB
               </option>
             ))}
-            <option value={NO_LIMIT}>No limit</option>
+            <option value={NO_LIMIT}>
+              {t("settings.storage.sizeLimit.none")}
+            </option>
           </Select>
         )}
       </SettingRow>
 
       <ConfirmDialog
         open={confirmClear}
-        title="Clear all videos?"
-        description="This deletes the videos Streamy downloaded. They download again if you watch them later."
-        confirmLabel="Clear videos"
+        title={t("settings.storage.clearConfirm.title")}
+        description={t("settings.storage.clearConfirm.description")}
+        confirmLabel={t("settings.storage.clearConfirm.confirm")}
         busy={busy}
         error={clearError}
         onConfirm={clear}

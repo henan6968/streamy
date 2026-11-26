@@ -1,4 +1,5 @@
 import { app, Menu, type MenuItemConstructorOptions } from "electron";
+import { t } from "../shared/i18n";
 
 export interface AppActions {
   openSettings: () => void;
@@ -17,12 +18,13 @@ export interface AppActions {
 export function setAppMenu(actions: AppActions): void {
   const isMac = process.platform === "darwin";
   const settings: MenuItemConstructorOptions = {
-    label: isMac ? "Settings…" : "Settings",
+    // The macOS item opens a dialog, so it has the ellipsis.
+    label: isMac ? t("main.menu.settings") : t("common.settings"),
     accelerator: "CmdOrCtrl+,",
     click: actions.openSettings,
   };
   const openTorrentFile: MenuItemConstructorOptions = {
-    label: "Open Torrent File…",
+    label: t("main.menu.openTorrentFile"),
     accelerator: "CmdOrCtrl+O",
     click: actions.openTorrentFile,
   };
@@ -55,7 +57,7 @@ export function setAppMenu(actions: AppActions): void {
             ],
           } satisfies MenuItemConstructorOptions,
           {
-            label: "File",
+            label: t("main.menu.file"),
             submenu: [
               openTorrentFile,
               { type: "separator" },
@@ -65,7 +67,7 @@ export function setAppMenu(actions: AppActions): void {
         ]
       : [
           {
-            label: "File",
+            label: t("main.menu.file"),
             submenu: [
               openTorrentFile,
               settings,
@@ -76,30 +78,30 @@ export function setAppMenu(actions: AppActions): void {
         ]),
     { role: "editMenu" },
     {
-      label: "View",
+      label: t("main.menu.view"),
       submenu: [
         ...devTools,
         // Zoom = the "Interface size" setting, so both stay in sync.
         {
-          label: "Actual Size",
+          label: t("main.menu.actualSize"),
           accelerator: "CmdOrCtrl+0",
           click: actions.resetZoom,
         },
         {
-          label: "Zoom In",
+          label: t("main.menu.zoomIn"),
           accelerator: "CmdOrCtrl+Plus",
           click: actions.zoomIn,
         },
         // ⌘= (no Shift) zooms in too, like in browsers.
         {
-          label: "Zoom In",
+          label: t("main.menu.zoomIn"),
           accelerator: "CmdOrCtrl+=",
           click: actions.zoomIn,
           visible: false,
           acceleratorWorksWhenHidden: true,
         },
         {
-          label: "Zoom Out",
+          label: t("main.menu.zoomOut"),
           accelerator: "CmdOrCtrl+-",
           click: actions.zoomOut,
         },

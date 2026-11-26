@@ -1,4 +1,5 @@
 import { mkdir } from "node:fs/promises";
+import { t } from "../../shared/i18n";
 import { cacheDirState } from "../cache";
 import { type CachePaths, cachePaths, getRuntime } from "../config";
 import { AppError, ErrorCode } from "../http/errors";
@@ -12,6 +13,7 @@ import { AppError, ErrorCode } from "../http/errors";
  * there and marked. The check itself is cacheDirState (cache/layout.ts).
  */
 
+/** The English text (tests assert it); people read engine.errors.videoFolderUnavailable. */
 export const VIDEO_FOLDER_UNAVAILABLE =
   "The video folder isn't available. Is the drive connected?";
 
@@ -34,7 +36,10 @@ export async function ensureVideoFolder(
 ): Promise<CachePaths> {
   const state = await cacheDirState(cacheDir).catch(() => "unreadable");
   if (state !== "ok") {
-    throw new AppError(ErrorCode.ServiceUnavailable, VIDEO_FOLDER_UNAVAILABLE);
+    throw new AppError(
+      ErrorCode.ServiceUnavailable,
+      t("engine.errors.videoFolderUnavailable"),
+    );
   }
   const paths = cachePaths(cacheDir);
   await Promise.all(

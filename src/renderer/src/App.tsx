@@ -2,6 +2,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { RouterProvider } from "react-router";
 import { Toaster } from "@/components/ui/toaster";
+import { LocaleProvider } from "@/lib/locale-provider";
 import { createQueryClient } from "@/lib/query-client";
 import { createAppRouter } from "@/router";
 
@@ -15,9 +16,11 @@ export function App() {
   const [router] = useState(createAppRouter);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-      <Toaster />
-    </QueryClientProvider>
+    <LocaleProvider>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+        <Toaster />
+      </QueryClientProvider>
+    </LocaleProvider>
   );
 }

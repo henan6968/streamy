@@ -1,14 +1,17 @@
+import { getLocale, translate } from "../../../shared/i18n";
+
+// Numbers, sizes, speeds and dates, written the way the interface's language
+// writes them ("1.2 MB" / "1.2 MB", "5 minutes ago" / "5 分钟前"). The locale
+// is the language picked in Settings (see lib/i18n.tsx); every function takes
+// another one for tests.
+
 const UNITS = ["byte", "kilobyte", "megabyte", "gigabyte", "terabyte"];
 
-/**
- * The language every number and date is written in. Streamy's text is
- * English only for now, so the OS language would mix in ("Opened vor 5
- * Minuten", "1,2 MB" in an English sentence). Tests can pass another one.
- */
-export const UI_LOCALE = "en";
-
 /** 1234567 → "1.2 MB" (1 kB = 1000 bytes, like macOS and drive makers). */
-export function formatBytes(bytes: number, locale = UI_LOCALE): string {
+export function formatBytes(
+  bytes: number,
+  locale: string = getLocale(),
+): string {
   let value = Math.max(0, bytes);
   let unit = 0;
   while (value >= 1000 && unit < UNITS.length - 1) {
@@ -17,7 +20,7 @@ export function formatBytes(bytes: number, locale = UI_LOCALE): string {
   }
   return new Intl.NumberFormat(locale, {
     style: "unit",
-    unit: UNITS[unit],
+    unit: UNITS[unit] ?? "byte",
     // "0 bytes" rather than the short form's "0 byte"; "1.2 MB" for the rest.
     unitDisplay: unit === 0 ? "long" : "short",
     maximumFractionDigits: unit === 0 || value >= 100 ? 0 : 1,
@@ -30,7 +33,7 @@ export function formatBytes(bytes: number, locale = UI_LOCALE): string {
  */
 export function formatSpeed(
   bytesPerSecond: number,
-  locale = UI_LOCALE,
+  locale: string = getLocale(),
 ): string {
   let value =
     Number.isFinite(bytesPerSecond) && bytesPerSecond > 0
@@ -56,7 +59,7 @@ export function formatSpeed(
  */
 export function formatRateLimit(
   kilobytesPerSecond: number,
-  locale = UI_LOCALE,
+  locale: string = getLocale(),
 ): string {
   return formatSpeed(kilobytesPerSecond * 1000, locale);
 }
@@ -80,46 +83,73 @@ export function formatPercent(fraction: number): string {
 }
 
 /** Seconds → "12 s", "3 min 05 s" (how long we've been waiting). */
-export function formatElapsed(seconds: number): string {
+export function formatElapsed(
+  seconds: number,
+  locale: string = getLocale(),
+): string {
   const total = Math.max(0, Math.floor(seconds));
-  if (total < 60) return `${total} s`;
-  const m = Math.floor(total / 60);
-  const s = String(total % 60).padStart(2, "0");
-  return `${m} min ${s} s`;
+  if (total < 60) {
+    return translate(locale, "common.elapsed.seconds", { seconds: total });
+  }
+  const minutes = Math.floor(total / 60);
+  const secondsPart = String(total % 60).padStart(2, "0");
+  return translate(locale, "common.elapsed.minutes", {
+    minutes,
+    seconds: secondsPart,
+  });
 }
 
 /** What's left of a video: "12 min left", "1 h 5 min left". */
-export function formatTimeLeft(seconds: number): string {
+export function formatTimeLeft(
+  seconds: number,
+  locale: string = getLocale(),
+): string {
   const minutes = Number.isFinite(seconds)
     ? Math.round(Math.max(0, seconds) / 60)
     : 0;
-  if (minutes < 1) return "Less than a minute left";
+  if (minutes < 1) return translate(locale, "common.timeLeft.lessThanAMinute");
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
-  if (h === 0) return `${m} min left`;
-  if (m === 0) return `${h} h left`;
-  return `${h} h ${m} min left`;
+  if (h === 0)
+    return translate(locale, "common.timeLeft.minutes", { count: m });
+  if (m === 0) return translate(locale, "common.timeLeft.hours", { count: h });
+  return translate(locale, "common.timeLeft.hoursAnd", {
+    hours: h,
+    minutes: m,
+  });
 }
 
 /** 0.3 → "+0.3 s", -1 → "−1.0 s", 0 → "0.0 s" (subtitle delay). */
-export function formatDelay(seconds: number): string {
+export function formatDelay(
+  seconds: number,
+  locale: string = getLocale(),
+): string {
   const rounded = Math.round(seconds * 10) / 10;
-  if (rounded === 0) return "0.0 s";
+  if (rounded === 0) return translate(locale, "common.delay.zero");
   const sign = rounded > 0 ? "+" : "−";
-  return `${sign}${Math.abs(rounded).toFixed(1)} s`;
+  return translate(locale, "common.delay.value", {
+    sign,
+    seconds: Math.abs(rounded).toFixed(1),
+  });
 }
 
 /** 1 → "1 peer", 12 → "12 peers". */
-export function formatPeers(peers: number): string {
-  return `${peers} ${peers === 1 ? "peer" : "peers"}`;
+export function formatPeers(
+  peers: number,
+  locale: string = getLocale(),
+): string {
+  return translate(locale, "common.peers", { count: peers });
 }
 
 /** "12 peers · 1.4 MB/s": how a torrent is doing right now. */
-export function formatSwarm(torrent: {
-  peers: number;
-  downloadSpeed: number;
-}): string {
-  return `${formatPeers(torrent.peers)} · ${formatSpeed(torrent.downloadSpeed)}`;
+export function formatSwarm(
+  torrent: {
+    peers: number;
+    downloadSpeed: number;
+  },
+  locale: string = getLocale(),
+): string {
+  return `${formatPeers(torrent.peers, locale)} · ${formatSpeed(torrent.downloadSpeed, locale)}`;
 }
 
 const MINUTE = 60_000;
@@ -134,12 +164,12 @@ const DAY = 24 * HOUR;
 export function formatRelativeTime(
   iso: string,
   now = Date.now(),
-  locale = UI_LOCALE,
+  locale: string = getLocale(),
 ): string | null {
   const time = Date.parse(iso);
   if (Number.isNaN(time)) return null;
   const ago = Math.max(0, now - time);
-  if (ago < MINUTE) return "just now";
+  if (ago < MINUTE) return translate(locale, "common.time.justNow");
 
   const relative = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
   if (ago < HOUR) return relative.format(-Math.floor(ago / MINUTE), "minute");
